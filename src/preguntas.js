@@ -1,6 +1,6 @@
 // Preguntas: las oficiales (exámenes publicados) y las generadas con calles reales en el mismo formato
 
-import { D, estudiable, buscarCallePorTexto } from './datos.js'
+import { D, estudiable, buscarCallePorTexto, unirBbox } from './datos.js'
 import { parques, calcularRuta } from './rutas.js'
 import { barajar, elegir } from './util.js'
 
@@ -28,11 +28,26 @@ export function conArticulo(c, prep = '') {
 
 const nombre = (id) => D.calles[id].n
 
+/** ¿Está la calle `c` en la zona? Zona: toda Sevilla, un distrito, un barrio o varios ({tipo: 'varias', distritos, barrios}). */
+export function enZona(zona, c) {
+  if (!zona || zona.tipo === 'todo') return true
+  if (zona.tipo === 'distrito') return c.d === zona.id
+  if (zona.tipo === 'barrio') return c.b.includes(zona.id)
+  return zona.distritos.includes(c.d) || c.b.some((b) => zona.barrios.includes(b))
+}
+
 /** Calles en la zona indicada. */
 export function callesDeZona(zona) {
   if (!zona || zona.tipo === 'todo') return D.calles
-  if (zona.tipo === 'distrito') return D.calles.filter((c) => c.d === zona.id)
-  return D.calles.filter((c) => c.b.includes(zona.id))
+  return D.calles.filter((c) => enZona(zona, c))
+}
+
+/** Recuadro de la zona (null para toda Sevilla). */
+export function bboxZona(zona) {
+  if (!zona || zona.tipo === 'todo') return null
+  if (zona.tipo === 'distrito') return D.distritos[zona.id].bbox
+  if (zona.tipo === 'barrio') return D.barrios[zona.id].bbox
+  return unirBbox([...zona.distritos.map((i) => D.distritos[i].bbox), ...zona.barrios.map((i) => D.barrios[i].bbox)])
 }
 
 function centro(c) {
@@ -138,7 +153,7 @@ const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const LUGARES_PREGUNTA = ['monumento', 'museo', 'hospital', 'mercado', 'bomberos', 'policia', 'biblioteca', 'civico', 'salud']
 
 function preguntaLugar(rnd, zona) {
-  const ls = D.lugares.filter((l) => LUGARES_PREGUNTA.includes(l.cat) && (!zona || zona.tipo === 'todo' || (zona.tipo === 'distrito' ? D.calles[l.calle].d === zona.id : D.calles[l.calle].b.includes(zona.id))))
+  const ls = D.lugares.filter((l) => LUGARES_PREGUNTA.includes(l.cat) && enZona(zona, D.calles[l.calle]))
   if (!ls.length) return null
   const l = elegir(ls, rnd)
   const c = D.calles[l.calle]
