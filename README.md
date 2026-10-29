@@ -24,7 +24,9 @@ Todo se genera con `scripts/preparar_datos.py` a partir de fuentes oficiales y a
 - **Cartografía de manzanas**, Dirección General del Catastro — descarga INSPIRE CadastralZoning (nivel MANZANA) del municipio 41900.
 - **Distritos, barrios, término municipal, parques de bomberos y equipamientos**, Ayuntamiento de Sevilla — datos abiertos de ide.SEVILLA.
 - **Ortofoto PNOA**, Instituto Geográfico Nacional — CC BY 4.0, servida directamente desde su WMTS.
-- **Mapa base**, colaboradores de OpenStreetMap (ODbL) y Protomaps — extracto PMTiles de Sevilla; también da el sentido de circulación y las calles peatonales que se asignan a los tramos del CDAU.
+- **Mapa base**, colaboradores de OpenStreetMap (ODbL) y Protomaps — extracto PMTiles de Sevilla; también da las flechas de sentido de circulación, las calles peatonales, las carreteras de acceso (con su titularidad: Estado, Junta o Diputación) y estaciones, universidades y estadios.
+
+El plano se limita a los 11 distritos de Sevilla: lo que queda fuera se tapa y no se puede salir de la ciudad.
 - **Preguntas de examen**: cuestionario y plantillas (provisional y definitiva) del segundo ejercicio de la convocatoria de 67 plazas de bombero/a del Ayuntamiento de Sevilla (22/01/2026), documentos públicos. Se respetan las anulaciones de la plantilla definitiva. Las preguntas generadas con calles reales llevan la marca «no oficial».
 
 ## Desarrollo
@@ -50,6 +52,23 @@ python3 scripts/preparar_datos.py --refrescar       # fuerza a descargar todo de
 
 Para añadir otro examen oficial, añade sus tres PDF (cuestionario y plantillas) a la lista `EXAMENES` del script.
 
+## Cuentas
+
+Cada persona puede crear su cuenta (nombre, correo y contraseña) y tiene su progreso por separado.
+
+- **Sin configurar nada**, las cuentas se guardan en el dispositivo (contraseña cifrada con PBKDF2). Sirve para compartir un ordenador o una tablet; para pasar el progreso a otro dispositivo se usa «Exportar copia».
+- **Con Supabase** (gratis), las cuentas son reales y el progreso se sincroniza entre dispositivos. Crea un proyecto en supabase.com, ejecuta este SQL y define `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` como variables del repositorio (Settings → Secrets and variables → Actions → Variables):
+
+```sql
+create table progreso (
+  user_id uuid primary key references auth.users on delete cascade,
+  datos jsonb not null,
+  actualizado timestamptz default now()
+);
+alter table progreso enable row level security;
+create policy "cada uno lo suyo" on progreso for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+```
+
 ## Privacidad
 
-No hay servidor ni cuentas: el progreso, las anotaciones, las preguntas propias y los ajustes se guardan en el `localStorage` del navegador y se pueden exportar o borrar desde «Mi cuenta».
+Sin Supabase no hay servidor: el progreso, las anotaciones, las preguntas propias y los ajustes se guardan en el `localStorage` del navegador y se pueden exportar o borrar desde «Mi cuenta».
