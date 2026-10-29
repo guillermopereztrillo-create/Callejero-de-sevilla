@@ -1,0 +1,5 @@
+node_modules/
+dist/
+datos-fuente/
+.DS_Store
+__pycache__/
