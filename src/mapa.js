@@ -3,7 +3,7 @@
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Protocol } from 'pmtiles'
-import { construirEstilo, PALETAS } from './estilo-mapa.js'
+import { construirEstilo, PALETAS, CAPAS_NOMBRES } from './estilo-mapa.js'
 import { BASE, D, unirBbox } from './datos.js'
 import { distanciaM } from './util.js'
 
@@ -154,8 +154,7 @@ export function aplicarCapas() {
   for (const id of ['calles-borde', 'principales-borde', 'osm-calles-borde']) mapa.setPaintProperty(id, 'line-opacity', sat ? 0 : 1)
 
   const nombres = capas.nombres && !ocultarNombres
-  vis('nombres-calles', nombres)
-  vis('nombres-calles-cortas', nombres)
+  for (const id of CAPAS_NOMBRES) vis(id, nombres)
   const etiquetasBase = !capas.mudo && !ocultarNombres
   vis('destacados', capas.destacados)
   vis('base-lugares', capas.destacados && !ocultarNombres)
