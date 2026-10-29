@@ -10,7 +10,7 @@ export function abrirTarjeta({ etiqueta, meta = '', enunciado, cuerpo = '', acci
   el.classList.remove('minimizada')
   el.innerHTML = `
     <div class="pregunta-cabecera">
-      <img src="${import.meta.env.BASE_URL}marca/simbolo.svg" alt="" width="22" height="22" />
+      <img src="${import.meta.env.BASE_URL}marca/logo.webp" alt="" width="22" height="22" />
       <span class="etiqueta">${esc(etiqueta)}</span>
       <span class="meta">${meta}</span>
       <button type="button" class="redondo" data-t="min" aria-label="Minimizar" title="Minimizar">${icono.menos(12)}</button>

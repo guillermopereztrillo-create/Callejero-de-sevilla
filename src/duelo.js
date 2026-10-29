@@ -140,7 +140,7 @@ function jugar(jugadores, preguntas) {
     const orden = [...jugadores].sort((a, b) => puntos[b] - puntos[a])
     const medallas = ['🥇', '🥈', '🥉']
     abrirDialogo(
-      `<div class="dialogo-portada"><img src="${import.meta.env.BASE_URL}marca/simbolo.svg" alt="" width="84" height="84" /></div>
+      `<div class="dialogo-portada"><img src="${import.meta.env.BASE_URL}marca/logo.webp" alt="" width="84" height="84" /></div>
       <div class="dialogo-cuerpo"><div class="antetitulo">Clasificación</div><h2>¡Gana ${esc(orden[0])}!</h2>
         <table class="tabla-progreso">${orden.map((j, i) => `<tr><td>${medallas[i] || i + 1 + '.'} ${esc(j)}<br><small class="nota">${aciertos[j]} de ${preguntas.length} aciertos</small></td><td><b>${puntos[j]}</b> puntos</td></tr>`).join('')}</table>
       </div>

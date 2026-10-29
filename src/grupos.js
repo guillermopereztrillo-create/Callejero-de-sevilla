@@ -193,7 +193,7 @@ export function abrirRetoDeEnlace(codigo) {
   history.replaceState(null, '', location.pathname)
   const que = reto.t === 'cr' ? 'un contrarreloj de 60 segundos' : `un test de ${reto.q} preguntas (${nombreZona(reto.z)})`
   abrirDialogo(
-    `<div class="dialogo-portada"><img src="${import.meta.env.BASE_URL}marca/simbolo.svg" alt="" width="84" height="84" /></div>
+    `<div class="dialogo-portada"><img src="${import.meta.env.BASE_URL}marca/logo.webp" alt="" width="84" height="84" /></div>
     <div class="dialogo-cuerpo"><div class="antetitulo">Reto</div><h2>${esc(reto.n)} te reta</h2>
       <p>Te propone ${que}${reto.p != null ? `; su marca: <b>${esc(reto.p)}</b>` : ''}. Tendrás exactamente las mismas preguntas.</p></div>
     <div class="dialogo-pie"><div class="derecha"><button class="secundario" data-cerrar>Ahora no</button><button class="principal" id="aceptar-reto">Aceptar el reto</button></div></div>`,

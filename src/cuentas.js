@@ -71,7 +71,7 @@ const hayProgresoSinCuenta = () => Object.keys(guardado.todo('callejero.')).some
 export function abrirAcceso(modo = 'crear') {
   const locales = cuentas().filter((c) => c.tipo === 'local')
   const d = abrirDialogo(
-    `<div class="dialogo-portada"><img src="${import.meta.env.BASE_URL}marca/simbolo.svg" alt="" width="84" height="84" /></div>
+    `<div class="dialogo-portada"><img src="${import.meta.env.BASE_URL}marca/logo.webp" alt="" width="84" height="84" /></div>
     <div class="dialogo-cuerpo">
       <div class="seg-fino" id="acceso-modo"><button type="button" data-m="crear">Crear cuenta</button><button type="button" data-m="entrar">Ya tengo cuenta</button></div>
       <form id="acceso-form" autocomplete="on">
