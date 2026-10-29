@@ -2897,3 +2897,14 @@ body.en-portada .maplibregl-ctrl-bottom-left {
     margin-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* logotipo circular (la Giralda sobre el plano) */
+img[src$='logo.webp'] {
+  border-radius: 50% !important;
+  object-fit: contain;
+}
+
+.inicio-simbolo,
+.dialogo-portada img {
+  box-shadow: 0 6px 18px rgba(37, 99, 160, 0.22) !important;
+}

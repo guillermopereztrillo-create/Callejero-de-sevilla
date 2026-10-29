@@ -43,7 +43,7 @@ export async function instalar() {
 export function ayuda() {
   const ios = esIOS()
   const d = abrirDialogo(
-    `<div class="dialogo-portada"><img src="${import.meta.env.BASE_URL}marca/simbolo.svg" alt="" width="84" height="84" /></div>
+    `<div class="dialogo-portada"><img src="${import.meta.env.BASE_URL}marca/logo.webp" alt="" width="84" height="84" /></div>
     <div class="dialogo-cuerpo">
       <div class="antetitulo">Instalar como app</div>
       <h2>Tenla en tu pantalla de inicio</h2>

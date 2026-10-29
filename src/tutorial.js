@@ -69,7 +69,7 @@ let tarjeta = null
 export function tutorial() {
   guardado.escribir('tutorialVisto', true)
   const d = abrirDialogo(
-    `<div class="dialogo-portada"><img src="${import.meta.env.BASE_URL}marca/simbolo.svg" alt="" width="96" height="96" /></div>
+    `<div class="dialogo-portada"><img src="${import.meta.env.BASE_URL}marca/logo.webp" alt="" width="96" height="96" /></div>
     <div class="dialogo-cuerpo">
       <div class="antetitulo">Tutorial</div>
       <h2>${PASOS[0].titulo}</h2><p>${PASOS[0].texto}</p>
