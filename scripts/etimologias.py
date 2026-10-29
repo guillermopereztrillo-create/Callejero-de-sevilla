@@ -119,15 +119,10 @@ def introducciones(titulos):
     titulos = sorted(set(titulos))
     for i in range(0, len(titulos), 20):
         lote = titulos[i:i + 20]
-        q = api(action='query', prop='extracts', exintro='1', explaintext='1', exsentences='3', titles='|'.join(lote))['query']
+        q = api(action='query', prop='extracts', exintro='1', explaintext='1', exsentences='5', titles='|'.join(lote))['query']
         for p in q.get('pages', []):
             out[p['title']] = (p.get('extract') or '').strip()
     return out
-
-
-def texto_completo(titulo):
-    q = api(action='query', prop='extracts', explaintext='1', titles=titulo)['query']
-    return (q['pages'][0].get('extract') or '') if q.get('pages') else ''
 
 
 def frases(texto):
@@ -196,10 +191,6 @@ def main():
         '· con dedicatoria:', sum(1 for v in elegido.values() if v[0] == 'dedicada'))
 
     intros = introducciones([p['title'] for _, p in elegido.values()])
-    completos = {}
-    for tipo, p in elegido.values():
-        if tipo == 'calle' and p['title'] not in completos:
-            completos[p['title']] = texto_completo(p['title'])
 
     out = {}
     for i, (tipo, p) in sorted(elegido.items()):
@@ -207,9 +198,11 @@ def main():
         texto = intros.get(titulo, '')
         if tipo == 'calle':
             # las frases que explican el nombre, si el artículo las tiene
-            sobre_nombre = [f for f in frases(completos.get(titulo, '')) if NOMBRE.search(f) and len(f) < 400][:2]
+            sobre_nombre = [f for f in frases(texto) if NOMBRE.search(f) and len(f) < 400][:2]
             if sobre_nombre:
                 texto = ' '.join(sobre_nombre)
+            else:
+                texto = ' '.join(frases(texto)[:2])
         else:
             texto = ' '.join(frases(texto)[:2])
         texto = recortar(texto.replace('\n', ' '))
