@@ -38,7 +38,7 @@ self.addEventListener('fetch', (e) => {
   // navegación: la red primero (para tener siempre la última versión), la caché si no hay conexión
   if (r.mode === 'navigate') {
     e.respondWith(
-      fetch(r)
+      fetch(r, { cache: 'no-cache' })
         .then((res) => {
           const copia = res.clone()
           caches.open(CACHE).then((c) => c.put('./index.html', copia))
@@ -48,7 +48,22 @@ self.addEventListener('fetch', (e) => {
     )
     return
   }
-  // resto: caché al momento y actualización en segundo plano
+  // datos del callejero: la red primero (comprobando si han cambiado), la caché si no hay conexión
+  if (url.pathname.includes('/datos/')) {
+    e.respondWith(
+      fetch(r, { cache: 'no-cache' })
+        .then((res) => {
+          if (res.ok) {
+            const copia = res.clone()
+            caches.open(CACHE).then((c) => c.put(r, copia))
+          }
+          return res
+        })
+        .catch(() => caches.match(r, { ignoreVary: true })),
+    )
+    return
+  }
+  // código y estilos (con nombre único por versión): caché al momento y actualización en segundo plano
   e.respondWith(
     caches.open(CACHE).then((c) =>
       c.match(r, { ignoreVary: true }).then((guardada) => {

@@ -2908,3 +2908,23 @@ img[src$='logo.webp'] {
 .dialogo-portada img {
   box-shadow: 0 6px 18px rgba(37, 99, 160, 0.22) !important;
 }
+
+/* aviso de versión nueva */
+.aviso-version {
+  position: fixed;
+  left: 50%;
+  top: calc(14px + env(safe-area-inset-top));
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 999px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra);
+  font-size: 14px;
+  white-space: nowrap;
+  animation: aparecer 0.3s ease both;
+}
