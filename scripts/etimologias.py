@@ -39,9 +39,11 @@ DEDICATORIAS = re.compile(
     r'cardenal|sacerdote|religios|fraile|monja|mártir|advocación|virgen|cristo|cofrad|hermandad|filósofo|'
     r'historiador|científic|médic|ingenier|jurista|periodista|futbolista|deportista|empresari|humanista|'
     r'mecenas|noble|duque|marqués|conde|municipio|ciudad|capital|provincia|comarca|país|región|isla|río|'
-    r'batalla|sierra|monte|pueblo|localidad|aldea|barrio|personaje|dramaturgo|novelista|ensayista|teólogo|'
+    r'batalla|sierra|monte|pueblo|localidad|barrio|personaje|dramaturgo|novelista|ensayista|teólogo|'
     r'botánic|astrónom|matemátic|pedagog|educador|maestr|alcalde|presidente|ministro|abogado|guitarrista|'
     r'pianista|director|cineasta|fotógraf|aviador|orden religiosa|congregación|fiesta|festividad', re.I)
+# aldeas y parroquias pequeñas: casi siempre coinciden por casualidad con el nombre de la calle
+DUDOSAS = re.compile(r'parroquia|aldea|lugar (situado|de la)|pedanía|caserío|entidad (local|singular)', re.I)
 NOMBRE = re.compile(r'(nombre|se llam|denomin|rotul|dedicad|debe su|honor|recuerd|conocid[ao] como|apelativ)', re.I)
 
 
@@ -185,7 +187,7 @@ def main():
             continue
         # 2. a quién o a qué está dedicada
         p = pags.get(dedicados[i])
-        if p and 'disambiguation' not in p.get('pageprops', {}) and DEDICATORIAS.search(p.get('description') or ''):
+        if p and 'disambiguation' not in p.get('pageprops', {}) and DEDICATORIAS.search(p.get('description') or '') and not DUDOSAS.search(p.get('description') or ''):
             elegido[i] = ('dedicada', p)
     log('calles con artículo propio:', sum(1 for v in elegido.values() if v[0] == 'calle'),
         '· con dedicatoria:', sum(1 for v in elegido.values() if v[0] == 'dedicada'))
