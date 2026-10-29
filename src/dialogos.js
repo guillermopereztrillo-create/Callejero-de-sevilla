@@ -51,39 +51,71 @@ export function confirmar(titulo, texto, si = 'Aceptar', no = 'Cancelar') {
   })
 }
 
-/** Selector de zona: Toda Sevilla, un distrito o un barrio. Devuelve {tipo, id} o null. */
-export function elegirZona(actual) {
+/** Selector de zona: Toda Sevilla, un distrito o un barrio. Devuelve {tipo, id} o null.
+ *  Con `varias`, se pueden marcar varios distritos y barrios: devuelve {tipo: 'varias', distritos, barrios}. */
+export function elegirZona(actual, { varias = false } = {}) {
+  const marcada = (t, id) =>
+    actual?.tipo === t ? actual.id === id : actual?.tipo === 'varias' && (t === 'distrito' ? actual.distritos : actual.barrios).includes(id)
+  const abierto = (di) => actual?.tipo === 'barrio' ? D.barrios[actual.id].distrito === di.id : varias && di.barrios.some((b) => marcada('barrio', b))
   return new Promise((ok) => {
     const d = abrirDialogo(
       `<div class="dialogo-cuerpo">
         <div class="antetitulo">Zona</div>
         <h2>¿Qué parte de Sevilla?</h2>
+        ${varias ? '<p class="nota">Puedes marcar varios distritos y barrios.</p>' : ''}
         <button type="button" class="fila-zona" data-zona="todo"><span class="punto-color" style="background:var(--acento)"></span><b>Toda Sevilla</b><span class="cuenta">${D.calles.length.toLocaleString('es-ES')} vías</span></button>
         ${D.distritos
           .map(
-            (di) => `<details class="acordeon-zona" ${actual?.tipo === 'barrio' && D.barrios[actual.id].distrito === di.id ? 'open' : ''}>
+            (di) => `<details class="acordeon-zona" ${abierto(di) ? 'open' : ''}>
             <summary><span class="punto-color" style="background:${di.color}"></span>${esc(di.nombre)}<span class="cuenta">${di.barrios.length} barrios</span>${icono.abajo(14)}</summary>
-            <button type="button" class="fila-zona" data-zona="distrito" data-id="${di.id}"><b>Todo el distrito</b><span class="cuenta">${di.calles} calles</span></button>
-            ${di.barrios.map((b) => `<button type="button" class="fila-zona" data-zona="barrio" data-id="${b}">${esc(D.barrios[b].nombre)}<span class="cuenta">${D.barrios[b].calles} calles</span></button>`).join('')}
+            <button type="button" class="fila-zona" data-zona="distrito" data-id="${di.id}" ${varias ? `aria-pressed="${marcada('distrito', di.id)}"` : ''}><b>Todo el distrito</b><span class="cuenta">${di.calles} calles</span></button>
+            ${di.barrios.map((b) => `<button type="button" class="fila-zona" data-zona="barrio" data-id="${b}" ${varias ? `aria-pressed="${marcada('barrio', b)}"` : ''}>${esc(D.barrios[b].nombre)}<span class="cuenta">${D.barrios[b].calles} calles</span></button>`).join('')}
           </details>`,
           )
           .join('')}
       </div>
-      <div class="dialogo-pie"><div class="derecha"><button class="secundario" data-cerrar>Cancelar</button></div></div>`,
+      <div class="dialogo-pie"><div class="derecha"><button class="secundario" data-cerrar>Cancelar</button>${varias ? '<button class="principal" id="zona-aplicar">Aplicar</button>' : ''}</div></div>`,
       { alCerrar: (v) => ok(v ?? null) },
     )
     d.querySelectorAll('[data-zona]').forEach(
       (b) =>
         (b.onclick = () => {
           const t = b.dataset.zona
-          cerrarDialogo(t === 'todo' ? { tipo: 'todo' } : { tipo: t, id: +b.dataset.id })
+          if (t === 'todo') return cerrarDialogo({ tipo: 'todo' })
+          if (!varias) return cerrarDialogo({ tipo: t, id: +b.dataset.id })
+          b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true')
+          contar()
         }),
     )
+    const aplicar = d.querySelector('#zona-aplicar')
+    function seleccion() {
+      const ids = (t) => [...d.querySelectorAll(`[data-zona=${t}][aria-pressed=true]`)].map((b) => +b.dataset.id)
+      return { distritos: ids('distrito'), barrios: ids('barrio') }
+    }
+    function contar() {
+      const s = seleccion()
+      const n = s.distritos.length + s.barrios.length
+      aplicar.textContent = n ? `Aplicar (${n})` : 'Aplicar'
+      aplicar.disabled = !n
+    }
+    if (aplicar) {
+      contar()
+      aplicar.onclick = () => {
+        const s = seleccion()
+        // una sola zona se guarda como siempre; varias, juntas
+        if (s.distritos.length + s.barrios.length === 1) cerrarDialogo(s.distritos.length ? { tipo: 'distrito', id: s.distritos[0] } : { tipo: 'barrio', id: s.barrios[0] })
+        else cerrarDialogo({ tipo: 'varias', ...s })
+      }
+    }
   })
 }
 
 export function nombreZona(z) {
   if (!z || z.tipo === 'todo') return 'Toda Sevilla'
+  if (z.tipo === 'varias') {
+    const n = [...z.distritos.map((i) => D.distritos[i].nombre), ...z.barrios.map((i) => D.barrios[i].nombre)]
+    return n.length <= 2 ? n.join(' y ') : `${n.slice(0, 2).join(', ')} y ${n.length - 2} más`
+  }
   return z.tipo === 'distrito' ? D.distritos[z.id].nombre : D.barrios[z.id].nombre
 }
 

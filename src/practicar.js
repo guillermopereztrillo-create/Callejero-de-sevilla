@@ -3,7 +3,7 @@
 import { D, CATEGORIAS, estudiable, coincideNombre, normalizarRespuesta, unirBbox } from './datos.js'
 import { mapa, marcar, limpiarMarcas, encuadrarCalles, encuadrar, modoJuego, calleEn, ponerMarcador, quitarMarcadores, dibujarRuta, distanciaM, marcarBarrio, activarEncima } from './mapa.js'
 import { abrirTarjeta, cerrarTarjeta, resultado, acciones, opcionesHTML, corregirOpciones } from './tarjeta.js'
-import { callesDeZona, conArticulo, cercanasSinCruce, preguntaItinerario } from './preguntas.js'
+import { callesDeZona, enZona, bboxZona, conArticulo, cercanasSinCruce, preguntaItinerario } from './preguntas.js'
 import { parques, calcularRuta } from './rutas.js'
 import { registrar, registrarLugar, pendientesHoy, falladas } from './progreso.js'
 import { elegirZona, nombreZona, abrirDialogo } from './dialogos.js'
@@ -134,7 +134,7 @@ export function montarPracticar() {
       `<div class="dialogo-cuerpo"><div class="antetitulo">Duelo en directo</div><h2>Cómo se juega</h2><p>Escribid los nombres (de 2 a 6 jugadores). Todos responden las mismas preguntas por turnos en este dispositivo, con 20 segundos por pregunta. Acertar rápido da más puntos. Al final, clasificación.</p></div><div class="dialogo-pie"><div class="derecha"><button class="principal" data-cerrar>Entendido</button></div></div>`,
     )
   $('#practica-zona').onclick = async () => {
-    const z = await elegirZona(F.zona)
+    const z = await elegirZona(F.zona, { varias: true })
     if (!z) return
     F.zona = z
     guardarF()
@@ -439,7 +439,7 @@ function localizar() {
   const c = siguienteCalle(lista)
   actual.calle = c.id
   // encuadre de la zona (no de la calle, que sería regalarla)
-  const zonaBbox = F.zona.tipo === 'barrio' ? D.barrios[F.zona.id].bbox : F.zona.tipo === 'distrito' ? D.distritos[F.zona.id].bbox : D.barrios[c.b[0]].bbox
+  const zonaBbox = bboxZona(F.zona) || D.barrios[c.b[0]].bbox
   encuadrar(zonaBbox, { maxZoom: 16 })
   if (F.zona.tipo === 'todo') marcarBarrio(c.b[0])
   abrirTarjeta({
@@ -715,11 +715,7 @@ async function itinerario() {
 }
 
 function lugares() {
-  const enZona = (l) => {
-    const c = D.calles[l.calle]
-    return F.zona.tipo === 'todo' || (F.zona.tipo === 'distrito' ? c.d === F.zona.id : c.b.includes(F.zona.id))
-  }
-  const lista = D.lugares.filter((l) => F.cats.includes(l.cat) && enZona(l))
+  const lista = D.lugares.filter((l) => F.cats.includes(l.cat) && enZona(F.zona, D.calles[l.calle]))
   if (!lista.length) return sinCalles()
   const cand = lista.filter((l) => !recientes.includes('l' + l.id))
   const l = elegir(cand.length ? cand : lista)
@@ -750,8 +746,7 @@ function lugares() {
       tras(ok, ok ? '✓ ¡Correcto!' : `✗ <span>Es <b>${esc(l.nombre)}</b>.</span>`)
     }
   } else if (tipo === 'donde') {
-    const bb = D.barrios[c.b[0]].bbox
-    encuadrar(F.zona.tipo === 'todo' ? D.distritos[c.d].bbox : F.zona.tipo === 'distrito' ? D.distritos[F.zona.id].bbox : bb, { maxZoom: 15.5 })
+    encuadrar(F.zona.tipo === 'todo' ? D.distritos[c.d].bbox : F.zona.tipo === 'barrio' ? D.barrios[c.b[0]].bbox : bboxZona(F.zona), { maxZoom: 15.5 })
     abrirTarjeta({ ...base, enunciado: `¿Dónde está <em>${esc(l.nombre)}</em>?`, cuerpo: `<p class="nota">Toca su ubicación en el plano (vale a menos de 150 m). Distrito ${esc(D.distritos[c.d].nombre)}.</p>` })
     app.juego.alTocar = (e) => {
       if (actual.respondida) return

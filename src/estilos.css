@@ -550,6 +550,26 @@ a {
   background: var(--superficie-2);
 }
 
+/* selección de varias zonas: casilla a la izquierda */
+.fila-zona[aria-pressed]::before {
+  content: '';
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid var(--borde-2);
+  background: var(--superficie);
+}
+
+.fila-zona[aria-pressed='true'] {
+  background: var(--acento-suave);
+}
+
+.fila-zona[aria-pressed='true']::before {
+  border-color: var(--acento);
+  background: var(--acento) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat;
+}
+
 .punto-color {
   width: 11px;
   height: 11px;
