@@ -5,7 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { Protocol } from 'pmtiles'
 import { construirEstilo, PALETAS } from './estilo-mapa.js'
 import { BASE, D, unirBbox } from './datos.js'
-import { guardado, distanciaM } from './util.js'
+import { distanciaM } from './util.js'
 
 export { distanciaM }
 
@@ -13,22 +13,21 @@ export let mapa
 let termino = null
 const CENTRO = [-5.982, 37.388]
 
-export const capas = Object.assign(
-  {
-    mudo: true,
-    nombres: false,
-    distritos: false,
-    barrios: false,
-    peatonales: true,
-    sentido: true,
-    satelite: false,
-    relieve: false,
-    poligonos: false,
-    carreteras: true,
-    pdi: ['bomberos', 'hospital', 'monumento', 'educacion', 'transporte'],
-  },
-  guardado.leer('capas2', {}),
-)
+// Al entrar solo se ven las calles, los distritos y los barrios; el resto de capas empieza desactivado
+// (lo que se active durante la visita no se recuerda para la siguiente).
+export const capas = {
+  mudo: false,
+  nombres: false,
+  distritos: true,
+  barrios: true,
+  peatonales: false,
+  sentido: false,
+  satelite: false,
+  relieve: false,
+  poligonos: false,
+  carreteras: false,
+  pdi: [],
+}
 
 /** Mientras se juega, los nombres no se muestran aunque estén activados. */
 let ocultarNombres = false
@@ -140,7 +139,6 @@ const vis = (id, v) => mapa.getLayer(id) && mapa.setLayoutProperty(id, 'visibili
 
 export function aplicarCapas() {
   if (!mapa) return
-  guardado.escribir('capas2', capas)
   const sat = capas.satelite
   vis('satelite', sat)
   for (const id of ['tierra', 'cubierta', 'usos-verde', 'usos-industrial', 'agua', 'agua-lineas']) vis(id, !sat)
