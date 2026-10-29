@@ -1044,6 +1044,17 @@ def main():
         'cr': sorted(c['cruza']), 'ac': sorted(c['acaba']), 'pa': sorted(c['paralelas']), 'pp': sorted(c['perpendiculares']),
     } for c in cs])
 
+    # nombres de las plazas: un punto en el centro de cada plaza (como el original)
+    plazas = []
+    for c in cs:
+        if c['tipo'] not in ('PLAZA', 'PLAZUELA', 'PLAZOLETA') or not c['nombre']:
+            continue
+        g = c['geom']
+        centro = g.convex_hull.centroid if g.convex_hull.area > 0 else g.interpolate(0.5, normalized=True) if g.geom_type == 'LineString' else g.centroid
+        plazas.append({'type': 'Feature', 'properties': {'id': c['id'], 'n': c['nombre'], 'e': rotulo(c['nombre'])},
+                       'geometry': {'type': 'Point', 'coordinates': [round(centro.x, 6), round(centro.y, 6)]}})
+    guardar('plazas.geojson', {'type': 'FeatureCollection', 'features': plazas})
+
     # sentido y peatonales para el mapa
     # flechas: directamente las vías de sentido único de OpenStreetMap, recortadas a los distritos
     union_utm = transform(A_UTM, union).buffer(10)
