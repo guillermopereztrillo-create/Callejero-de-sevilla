@@ -16,7 +16,7 @@ export const PALETAS = {
     manzanaBorde: '#E1CDAC',
     edificio: '#E4D0AF',
     calle: '#FFFFFF',
-    calleBorde: '#DCCAB0',
+    calleBorde: '#B89E7E',
     principal: '#F2C14E',
     principalBorde: '#DDA53C',
     autovia: '#E8893A',
@@ -80,11 +80,11 @@ export const DESTACADOS = ['place_of_worship', 'monastery', 'attraction', 'museu
 const z = (pares) => ['interpolate', ['exponential', 1.6], ['zoom'], ...pares]
 
 export function anchoCalle(principal) {
-  return principal ? z([10, 1, 12, 2.2, 13, 3.4, 14, 5, 16, 11, 18, 34, 20, 110]) : z([11, 0.6, 12, 1.1, 13, 1.9, 14, 3, 15, 4.6, 16, 7, 18, 22, 20, 80])
+  return principal ? z([10, 1.4, 12, 2.8, 13, 4, 14, 5.6, 16, 11, 18, 34, 20, 110]) : z([10, 0.8, 11, 1.2, 12, 1.8, 13, 2.8, 14, 4.2, 15, 5.6, 16, 7.6, 18, 22, 20, 80])
 }
 
 const anchoBorde = (principal) =>
-  principal ? z([10, 1.6, 12, 3, 13, 4.4, 14, 6.4, 16, 13.5, 18, 38, 20, 116]) : z([11, 0.9, 12, 1.6, 13, 2.6, 14, 4, 15, 5.8, 16, 8.8, 18, 25, 20, 84])
+  principal ? z([10, 2.2, 12, 3.8, 13, 5.2, 14, 7, 16, 13.5, 18, 38, 20, 116]) : z([10, 1.4, 11, 2, 12, 2.8, 13, 4, 14, 5.6, 15, 7.2, 16, 9.4, 18, 25, 20, 84])
 
 /** Construye el estilo completo. `termino` es la geometría del término municipal (para no duplicar calles). */
 export function construirEstilo(tema = 'claro', termino = null) {
@@ -222,8 +222,8 @@ export function construirEstilo(tema = 'claro', termino = null) {
           'fill-extrusion-opacity': 0.85,
         },
       },
-      { id: 'distritos-relleno', type: 'fill', source: 'distritos', layout: { visibility: 'none' }, paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.2 } },
-      { id: 'barrios-relleno', type: 'fill', source: 'barrios', layout: { visibility: 'none' }, paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.24 } },
+      { id: 'distritos-relleno', type: 'fill', source: 'distritos', layout: { visibility: 'none' }, paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.12 } },
+      { id: 'barrios-relleno', type: 'fill', source: 'barrios', layout: { visibility: 'none' }, paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.14 } },
       {
         id: 'bic',
         type: 'fill',
@@ -571,7 +571,7 @@ export function construirEstilo(tema = 'claro', termino = null) {
         id: 'calles-toque',
         type: 'line',
         source: 'calles',
-        paint: { 'line-color': '#000', 'line-opacity': 0, 'line-width': z([12, 10, 16, 18, 18, 34]) },
+        paint: { 'line-color': '#000', 'line-opacity': 0, 'line-width': z([11, 8, 13, 10, 16, 18, 18, 34]) },
       },
       // anotaciones
       {
