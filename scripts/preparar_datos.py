@@ -147,6 +147,20 @@ def matiz(hexa, f):
     return '#%02X%02X%02X' % tuple(round(c + (m - c) * f) for c in (r, g, b))
 
 
+ABREVIATURAS = [('Calle ', 'C/ '), ('Avenida ', 'Av. '), ('Plaza ', 'Pl. '), ('Plazuela ', 'Pza. '), ('Plazoleta ', 'Pza. '),
+                ('Callejón ', 'Cjón. '), ('Pasaje ', 'Pje. '), ('Glorieta ', 'Gta. '), ('Barreduela ', 'Brda. '),
+                ('Paseo ', 'P.º '), ('Carretera ', 'Ctra. '), ('Ronda ', 'Rda. '), ('Camino ', 'Cno. '), ('Costanilla ', 'Cost. '),
+                ('Urbanización ', 'Urb. '), ('Barriada ', 'Bda. '), ('Polígono ', 'Pol. '), ('Autovía ', 'Autov. ')]
+
+
+def rotulo(nombre):
+    """Nombre corto para el plano, con el tipo de vía abreviado como en el original: «C/ Feria», «Av. de la Cruz»."""
+    for largo, corto in ABREVIATURAS:
+        if nombre.startswith(largo):
+            return corto + nombre[len(largo):]
+    return nombre
+
+
 def normalizar(s):
     """Forma de comparación de nombres de calle: sin tildes, sin signos, sin artículos."""
     s = sin_tildes(s.lower())
@@ -1008,9 +1022,9 @@ def main():
     # calles
     guardar('calles.geojson', {'type': 'FeatureCollection', 'features': [
         {'type': 'Feature', 'id': c['id'], 'properties': {
-            'id': c['id'], 'n': c['nombre'], 't': c['tc'], 'd': c['distrito'], 'b': c['barrio'],
+            'id': c['id'], 'n': c['nombre'], 'e': rotulo(c['nombre']), 't': c['tc'], 'd': c['distrito'], 'b': c['barrio'],
             'dif': c['dif'], 'p': 1 if c['principal'] else 0, 'z': 1 if c['zona'] else 0},
-         'geometry': redondear(c['geom'])} for c in cs]})
+         'geometry': redondear(linemerge(c['geom']) if c['geom'].geom_type == 'MultiLineString' else c['geom'])} for c in cs]})
     guardar('calles.json', [{
         'id': c['id'], 'n': c['nombre'], 'c': c['corto'], 't': c['tc'], 'ine': c['ine'], 'cdau': c['cdau'],
         'so': c['sobrenombre'], 'd': c['distrito'], 'b': c['barrios'], 'l': c['longitud'], 'dif': c['dif'],
@@ -1026,7 +1040,8 @@ def main():
     for c in cs:
         if c['zona'] or not c['nombre']:
             continue
-        ln = max(lineas(c['utm']), key=lambda l: l.length)
+        unida = linemerge(c['utm']) if c['utm'].geom_type == 'MultiLineString' else c['utm']
+        ln = max(lineas(unida), key=lambda l: l.length)
         if ln.length < 4:
             continue
         mid = ln.interpolate(0.5, normalized=True)
@@ -1039,7 +1054,9 @@ def main():
         if rot <= -90:
             rot += 180
         lon, lat = A_GEO(mid.x, mid.y)
-        rotulos_calles.append({'type': 'Feature', 'properties': {'id': c['id'], 'n': c['nombre'], 'r': round(rot, 1), 'l': c['longitud'], 'p': 1 if c['principal'] else 0},
+        # zf: zoom a partir del cual el nombre cabe a lo largo de la calle (~6 px por carácter)
+        zf = round(math.log2((len(rotulo(c['nombre'])) * 6.0 + 8) * 124350 / max(ln.length, 1)), 2)
+        rotulos_calles.append({'type': 'Feature', 'properties': {'id': c['id'], 'n': c['nombre'], 'e': rotulo(c['nombre']), 'r': round(rot, 1), 'l': c['longitud'], 'p': 1 if c['principal'] else 0, 'zf': zf},
                                'geometry': {'type': 'Point', 'coordinates': [round(lon, 6), round(lat, 6)]}})
     guardar('rotulos-calles.geojson', {'type': 'FeatureCollection', 'features': rotulos_calles})
 
