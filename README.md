@@ -35,6 +35,10 @@ npm run dev        # http://localhost:5173
 npm run build      # genera dist/ (web estática, se puede publicar en cualquier hosting)
 ```
 
+### Publicación
+
+El flujo `.github/workflows/pages.yml` construye la web y la publica en GitHub Pages en cada push a `main`. Hay que activarlo una vez en **Settings → Pages → Source: GitHub Actions**. La web quedará en `https://<usuario>.github.io/Callejero-de-sevilla/`.
+
 ### Regenerar los datos
 
 ```bash
