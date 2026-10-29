@@ -2567,3 +2567,9 @@ body.en-portada .maplibregl-ctrl-bottom-left {
 .sello {
   transition: opacity 0.5s 0.15s;
 }
+
+.dialogo-cuerpo .enunciado {
+  font-size: 21px;
+  color: var(--texto);
+  margin: 12px 0;
+}
