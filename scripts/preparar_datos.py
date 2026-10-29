@@ -1020,6 +1020,29 @@ def main():
         'cr': sorted(c['cruza']), 'ac': sorted(c['acaba']), 'pa': sorted(c['paralelas']), 'pp': sorted(c['perpendiculares']),
     } for c in cs])
 
+    # rótulos: un punto por calle en el centro de su tramo más largo, con el ángulo de la calle,
+    # para poder nombrar también las calles cortas (en las que el nombre no cabe a lo largo)
+    rotulos_calles = []
+    for c in cs:
+        if c['zona'] or not c['nombre']:
+            continue
+        ln = max(lineas(c['utm']), key=lambda l: l.length)
+        if ln.length < 4:
+            continue
+        mid = ln.interpolate(0.5, normalized=True)
+        a = ln.interpolate(max(0, ln.length / 2 - 6))
+        b = ln.interpolate(min(ln.length, ln.length / 2 + 6))
+        ang = math.degrees(math.atan2(b.y - a.y, b.x - a.x))
+        rot = -ang
+        if rot > 90:
+            rot -= 180
+        if rot <= -90:
+            rot += 180
+        lon, lat = A_GEO(mid.x, mid.y)
+        rotulos_calles.append({'type': 'Feature', 'properties': {'id': c['id'], 'n': c['nombre'], 'r': round(rot, 1), 'l': c['longitud'], 'p': 1 if c['principal'] else 0},
+                               'geometry': {'type': 'Point', 'coordinates': [round(lon, 6), round(lat, 6)]}})
+    guardar('rotulos-calles.geojson', {'type': 'FeatureCollection', 'features': rotulos_calles})
+
     # sentido y peatonales para el mapa
     # flechas: directamente las vías de sentido único de OpenStreetMap, recortadas a los distritos
     union_utm = transform(A_UTM, union).buffer(10)

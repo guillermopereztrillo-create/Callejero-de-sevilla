@@ -150,11 +150,12 @@ export function aplicarCapas() {
   for (const id of ['tierra', 'cubierta', 'usos-verde', 'usos-industrial', 'agua', 'agua-lineas']) vis(id, !sat)
   mapa.setPaintProperty('manzanas', 'fill-opacity', sat ? 0 : ['interpolate', ['linear'], ['zoom'], 11, 0.55, 14, 1])
   mapa.setPaintProperty('manzanas-borde', 'line-opacity', sat ? 0.35 : 1)
-  for (const id of ['calles', 'principales']) mapa.setPaintProperty(id, 'line-opacity', sat ? 0.55 : 1)
-  for (const id of ['calles-borde', 'principales-borde']) mapa.setPaintProperty(id, 'line-opacity', sat ? 0 : 1)
+  for (const id of ['calles', 'principales', 'osm-calles']) mapa.setPaintProperty(id, 'line-opacity', sat ? 0.55 : 1)
+  for (const id of ['calles-borde', 'principales-borde', 'osm-calles-borde']) mapa.setPaintProperty(id, 'line-opacity', sat ? 0 : 1)
 
   const nombres = capas.nombres && !ocultarNombres
   vis('nombres-calles', nombres)
+  vis('nombres-calles-cortas', nombres)
   const etiquetasBase = !capas.mudo && !ocultarNombres
   vis('destacados', capas.destacados)
   vis('base-lugares', capas.destacados && !ocultarNombres)

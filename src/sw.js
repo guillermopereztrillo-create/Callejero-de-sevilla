@@ -7,7 +7,7 @@ const VERSION = '__VERSION__'
 const CACHE = 'callejero-' + VERSION
 const ESENCIAL = ['./', './index.html', './manifest.webmanifest', './favicon.png', './marca/logo.webp', './iconos/icono-192.png', ...__ARCHIVOS__]
 const DATOS = [
-  'calles.json', 'calles.geojson', 'distritos.geojson', 'barrios.geojson', 'rotulos.geojson', 'termino.geojson', 'fuera.geojson',
+  'calles.json', 'calles.geojson', 'distritos.geojson', 'barrios.geojson', 'rotulos.geojson', 'rotulos-calles.geojson', 'termino.geojson', 'fuera.geojson',
   'lugares.geojson', 'bic.geojson', 'carreteras.geojson', 'entradas.geojson', 'peatonales.geojson', 'sentidos.geojson',
   'manzanas.geojson', 'red.json', 'test-oficiales.json', 'fuentes.json',
 ].map((f) => './datos/' + f)
