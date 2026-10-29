@@ -52,6 +52,10 @@ python3 scripts/preparar_datos.py --refrescar       # fuerza a descargar todo de
 
 Para añadir otro examen oficial, añade sus tres PDF (cuestionario y plantillas) a la lista `EXAMENES` del script.
 
+## Instalar como app
+
+La web es una aplicación instalable (PWA): tiene icono propio, se abre a pantalla completa y funciona sin conexión (salvo el satélite y la vista de la calle). En la portada aparece «Instalar como app»; en iPhone y iPad se instala desde Safari con Compartir → «Añadir a pantalla de inicio». El service worker (`src/sw.js`) se genera al construir con la lista de archivos de la app.
+
 ## Cuentas
 
 Cada persona puede crear su cuenta (nombre, correo y contraseña) y tiene su progreso por separado.

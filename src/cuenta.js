@@ -5,6 +5,7 @@ import { aplicarTema } from './mapa.js'
 import { P, guardar, resumen, plan, exportar, importar, borrarTodo, alCambiar } from './progreso.js'
 import { abrirDialogo, cerrarDialogo, confirmar, fuentes } from './dialogos.js'
 import { tutorial } from './tutorial.js'
+import { ayuda } from './instalar.js'
 import { sesion, abrirAcceso, cerrarSesion, cambiarCuenta } from './cuentas.js'
 import { $, esc, icono, guardado, descargarArchivo, aviso, numero } from './util.js'
 
@@ -89,6 +90,7 @@ export function abrirCuenta() {
       <div class="acciones" style="margin-top:16px">
         <button type="button" class="secundario pequeno" id="c-exportar">${icono.descargar(16)} Exportar copia</button>
         <button type="button" class="secundario pequeno" id="c-importar">${icono.subir(16)} Importar copia</button>
+        <button type="button" class="secundario pequeno" id="c-instalar">Instalar como app y compartir</button>
         <button type="button" class="secundario pequeno" id="c-tutorial">Ver el tutorial</button>
         <button type="button" class="secundario pequeno" id="c-fuentes">Fuentes de datos</button>
         <button type="button" class="secundario pequeno" id="c-borrar" style="color:var(--error)">${icono.papelera(16)} Borrar todo</button>
@@ -137,6 +139,7 @@ export function abrirCuenta() {
     tutorial()
   }
   $('#c-fuentes').onclick = fuentes
+  $('#c-instalar').onclick = ayuda
   $('#c-borrar').onclick = async () => {
     if (await confirmar('¿Borrar todo tu progreso?', 'Se borrarán tus aciertos, repasos, zonas aprendidas y récords de este navegador. No se puede deshacer.', 'Borrar', 'Cancelar')) {
       borrarTodo()

@@ -16,6 +16,7 @@ import { montarDialogos } from './dialogos.js'
 import { montarCuenta, pintarAvatar } from './cuenta.js'
 import { tutorial } from './tutorial.js'
 import { montarVista, cerrarVista } from './vista.js'
+import { montarInstalar } from './instalar.js'
 import { cerrarFicha } from './ficha.js'
 import { iniciarCuentas, abrirAcceso, sesion } from './cuentas.js'
 import { app } from './app.js'
@@ -195,6 +196,7 @@ async function arrancar() {
   montarCuenta()
   pintarAvatar()
   montarVista()
+  montarInstalar()
   iniciarCuentas().catch((e) => console.warn(e))
 
   const boton = $('#inicio-entrar')
