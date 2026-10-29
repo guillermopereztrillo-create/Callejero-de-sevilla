@@ -77,6 +77,15 @@ const FUENTE_I = ['Noto Sans Italic']
 /** Lugares del mapa base que se muestran con la capa «Iglesias, capillas y lugares destacados». */
 export const DESTACADOS = ['place_of_worship', 'monastery', 'attraction', 'museum', 'townhall', 'castle', 'monument', 'memorial', 'archaeological_site', 'artwork', 'stadium', 'theatre', 'marketplace', 'park', 'garden', 'zoo', 'theme_park']
 
+/** Tamaño máximo del nombre de las calles en cada nivel de zoom. */
+const TAM_NOMBRE = { 13: 9, 14: 10, 15: 11, 16: 11.5, 17: 12.5, 18: 13.5, 19: 14.5 }
+/** Por debajo de LEGIBLE se quita el tipo de vía; por debajo de MINIMO el nombre no se pone (aparece al acercarse). */
+const LEGIBLE = 7
+const MINIMO = 4.5
+
+/** Capas de nombres de calle (una por nivel de zoom). */
+export const CAPAS_NOMBRES = Object.keys(TAM_NOMBRE).map((n) => 'nombres-calles-' + n)
+
 const z = (pares) => ['interpolate', ['exponential', 1.6], ['zoom'], ...pares]
 
 export function anchoCalle(principal) {
@@ -121,6 +130,11 @@ export function construirEstilo(tema = 'claro', termino = null) {
         type: 'geojson',
         data: BASE + 'calles.geojson',
         promoteId: 'id',
+        // teselas grandes (z14, unos 2,4 km) para que pocas calles queden partidas entre teselas:
+        // en una calle partida el nombre solo se coloca si el trozo de cada tesela es lo bastante largo
+        maxzoom: 14,
+        tolerance: 0.15,
+        buffer: 256,
         attribution: 'Callejero: <a href="https://www.callejerodeandalucia.es/" target="_blank">CDAU</a>, Junta de Andalucía (CC BY 4.0)',
       },
       distritos: {
@@ -131,7 +145,6 @@ export function construirEstilo(tema = 'claro', termino = null) {
       },
       barrios: { type: 'geojson', data: BASE + 'barrios.geojson', promoteId: 'id' },
       rotulos: { type: 'geojson', data: BASE + 'rotulos.geojson' },
-      'rotulos-calles': { type: 'geojson', data: BASE + 'rotulos-calles.geojson' },
       peatonales: { type: 'geojson', data: BASE + 'peatonales.geojson' },
       sentidos: { type: 'geojson', data: BASE + 'sentidos.geojson' },
       lugares: { type: 'geojson', data: BASE + 'lugares.geojson', promoteId: 'id' },
@@ -503,48 +516,38 @@ export function construirEstilo(tema = 'claro', termino = null) {
         layout: { 'text-field': ['coalesce', ['get', 'name:es'], ['get', 'name']], 'text-font': FUENTE_I, 'text-size': 12, 'symbol-placement': 'point' },
         paint: { 'text-color': '#4E7FA8', 'text-halo-color': P.halo, 'text-halo-width': 1.2 },
       },
-      {
-        id: 'nombres-calles',
-        type: 'symbol',
-        source: 'calles',
-        minzoom: 13,
-        filter: ['==', ['get', 'z'], 0],
-        layout: {
-          visibility: 'none',
-          'symbol-placement': 'line',
-          'text-field': ['coalesce', ['get', 'e'], ['get', 'n']],
-          'text-font': FUENTE,
-          'text-size': ['interpolate', ['linear'], ['zoom'], 13, 9, 16, 10.5, 18, 12.5],
-          'text-max-angle': 45,
-          'text-padding': 0,
-          'symbol-spacing': ['interpolate', ['linear'], ['zoom'], 13, 250, 17, 400],
-          'symbol-sort-key': ['-', 10, ['get', 'p']],
-        },
-        paint: { 'text-color': P.texto, 'text-halo-color': P.halo, 'text-halo-width': 1.5 },
-      },
-      {
-        // las calles en las que el nombre no cabe a lo largo: rótulo girado en su centro
-        id: 'nombres-calles-cortas',
-        type: 'symbol',
-        source: 'rotulos-calles',
-        minzoom: 14,
-        // primero las calles en las que el nombre no cabe a lo largo; el resto, si queda sitio
-        filter: ['>', ['+', ['get', 'zf'], 1.5], ['zoom']],
-        layout: {
-          visibility: 'none',
-          'text-field': ['coalesce', ['get', 'e'], ['get', 'n']],
-          'text-font': FUENTE,
-          'text-size': ['interpolate', ['linear'], ['zoom'], 14, 8.5, 16, 10, 18, 12],
-          'text-rotate': ['get', 'r'],
-          'text-rotation-alignment': 'map',
-          'text-variable-anchor': ['center', 'top', 'bottom'],
-          'text-radial-offset': 0.35,
-          'text-padding': 0,
-          'text-max-width': 30,
-          'symbol-sort-key': ['-', 0, ['get', 'zf']],
-        },
-        paint: { 'text-color': P.texto, 'text-halo-color': P.halo, 'text-halo-width': 1.4 },
-      },
+      // Nombres de calle: siempre dentro de la calle, a lo largo de ella; si no cabe, la letra se hace más
+      // pequeña. f (de preparar_datos.py) es el tamaño de letra con el que el nombre cabe a zoom 0.
+      // Una capa por nivel de zoom con un tamaño fijo por calle: así MapLibre comprueba que el nombre
+      // cabe con el mismo tamaño con el que lo dibuja (con un tamaño que cambia con el zoom lo comprueba
+      // con el del zoom siguiente, que es el doble, y descarta casi todas las calles cortas).
+      ...[13, 14, 15, 16, 17, 18, 19].map((nivel) => {
+        // con el tipo de vía («C/ Feria») si cabe a un tamaño legible; si no, solo el nombre («Feria»)
+        const conTipo = ['*', ['get', 'f'], 2 ** nivel]
+        const sinTipo = ['*', ['get', 'fc'], 2 ** nivel]
+        const cabeConTipo = ['>=', conTipo, LEGIBLE]
+        return {
+          id: 'nombres-calles-' + nivel,
+          type: 'symbol',
+          source: 'calles',
+          minzoom: nivel,
+          maxzoom: nivel === 19 ? 24 : nivel + 1,
+          filter: ['all', ['==', ['get', 'z'], 0], ['>=', sinTipo, MINIMO]],
+          layout: {
+            visibility: 'none',
+            'symbol-placement': 'line',
+            'text-field': ['case', cabeConTipo, ['coalesce', ['get', 'e'], ['get', 'n']], ['get', 'c']],
+            'text-font': FUENTE,
+            'text-size': ['min', TAM_NOMBRE[nivel], ['case', cabeConTipo, conTipo, sinTipo]],
+            'text-max-angle': 85,
+            'text-padding': 0,
+            'text-keep-upright': true,
+            'symbol-spacing': 320,
+            'symbol-sort-key': ['-', 10, ['get', 'p']],
+          },
+          paint: { 'text-color': P.texto, 'text-halo-color': P.calle, 'text-halo-width': 1 },
+        }
+      }),
       {
         id: 'destacados',
         type: 'circle',

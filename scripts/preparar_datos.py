@@ -161,6 +161,14 @@ def rotulo(nombre):
     return nombre
 
 
+def ajuste_rotulo(c):
+    """Factor para que el nombre quepa dentro de la calle: tamaño de letra (px) = f · 2^zoom.
+    Se calcula con el tramo continuo más largo de la calle (~0,58 em por carácter y un 8 % de margen)."""
+    unida = linemerge(c['utm']) if c['utm'].geom_type == 'MultiLineString' else c['utm']
+    largo = max(l.length for l in lineas(unida))
+    return float('%.4g' % (0.92 * largo / (124350 * 0.58 * max(len(rotulo(c['nombre'])), 1))))
+
+
 def normalizar(s):
     """Forma de comparación de nombres de calle: sin tildes, sin signos, sin artículos."""
     s = sin_tildes(s.lower())
@@ -1022,7 +1030,9 @@ def main():
     # calles
     guardar('calles.geojson', {'type': 'FeatureCollection', 'features': [
         {'type': 'Feature', 'id': c['id'], 'properties': {
-            'id': c['id'], 'n': c['nombre'], 'e': rotulo(c['nombre']), 't': c['tc'], 'd': c['distrito'], 'b': c['barrio'],
+            'id': c['id'], 'n': c['nombre'], 'e': rotulo(c['nombre']), 'f': ajuste_rotulo(c),
+            'c': c['corto'], 'fc': float('%.4g' % (ajuste_rotulo(c) * len(rotulo(c['nombre'])) / max(len(c['corto']), 1))),
+            't': c['tc'], 'd': c['distrito'], 'b': c['barrio'],
             'dif': c['dif'], 'p': 1 if c['principal'] else 0, 'z': 1 if c['zona'] else 0},
          'geometry': redondear(linemerge(c['geom']) if c['geom'].geom_type == 'MultiLineString' else c['geom'])} for c in cs]})
     guardar('calles.json', [{
@@ -1033,32 +1043,6 @@ def main():
         'bb': [round(v, 5) for v in c['geom'].bounds],
         'cr': sorted(c['cruza']), 'ac': sorted(c['acaba']), 'pa': sorted(c['paralelas']), 'pp': sorted(c['perpendiculares']),
     } for c in cs])
-
-    # rótulos: un punto por calle en el centro de su tramo más largo, con el ángulo de la calle,
-    # para poder nombrar también las calles cortas (en las que el nombre no cabe a lo largo)
-    rotulos_calles = []
-    for c in cs:
-        if c['zona'] or not c['nombre']:
-            continue
-        unida = linemerge(c['utm']) if c['utm'].geom_type == 'MultiLineString' else c['utm']
-        ln = max(lineas(unida), key=lambda l: l.length)
-        if ln.length < 4:
-            continue
-        mid = ln.interpolate(0.5, normalized=True)
-        a = ln.interpolate(max(0, ln.length / 2 - 6))
-        b = ln.interpolate(min(ln.length, ln.length / 2 + 6))
-        ang = math.degrees(math.atan2(b.y - a.y, b.x - a.x))
-        rot = -ang
-        if rot > 90:
-            rot -= 180
-        if rot <= -90:
-            rot += 180
-        lon, lat = A_GEO(mid.x, mid.y)
-        # zf: zoom a partir del cual el nombre cabe a lo largo de la calle (~6 px por carácter)
-        zf = round(math.log2((len(rotulo(c['nombre'])) * 6.0 + 8) * 124350 / max(ln.length, 1)), 2)
-        rotulos_calles.append({'type': 'Feature', 'properties': {'id': c['id'], 'n': c['nombre'], 'e': rotulo(c['nombre']), 'r': round(rot, 1), 'l': c['longitud'], 'p': 1 if c['principal'] else 0, 'zf': zf},
-                               'geometry': {'type': 'Point', 'coordinates': [round(lon, 6), round(lat, 6)]}})
-    guardar('rotulos-calles.geojson', {'type': 'FeatureCollection', 'features': rotulos_calles})
 
     # sentido y peatonales para el mapa
     # flechas: directamente las vías de sentido único de OpenStreetMap, recortadas a los distritos
