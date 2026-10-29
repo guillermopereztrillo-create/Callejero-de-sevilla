@@ -21,6 +21,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -98,6 +99,21 @@ def paginas(titulos):
     return out
 
 
+def miembros(categoria, nivel=0):
+    """Títulos de los artículos de una categoría (y de sus subcategorías, hasta dos niveles)."""
+    out, seguir = [], {}
+    while True:
+        q = api(action='query', list='categorymembers', cmtitle=categoria, cmlimit='500', cmtype='page|subcat', **seguir)
+        for m in q.get('query', {}).get('categorymembers', []):
+            if m['ns'] == 14 and nivel < 2:
+                out += miembros(m['title'], nivel + 1)
+            elif m['ns'] == 0:
+                out.append(m['title'])
+        if 'continue' not in q:
+            return out
+        seguir = {'cmcontinue': q['continue']['cmcontinue']}
+
+
 def introducciones(titulos):
     out = {}
     titulos = sorted(set(titulos))
@@ -127,17 +143,40 @@ def recortar(texto, maximo=420):
     return corte.rstrip(',;:') + '…'
 
 
+TIPOS = r'(calle|plaza|plazuela|plazoleta|avenida|paseo|ronda|glorieta|callejon|pasaje|puente|camino|carretera|barriada|cuesta|costanilla|travesia|jardines|parque)'
+
+
+def clave(t):
+    t = unicodedata.normalize('NFD', t.lower())
+    t = ''.join(ch for ch in t if unicodedata.category(ch) != 'Mn')
+    t = re.sub(r'\s*\(sevilla\)\s*$', '', t)
+    t = re.sub(r'\b(de|del|la|las|los|el|y)\b', ' ', t)
+    return ' '.join(re.sub(r'[^a-z0-9ñ ]+', ' ', t).split())
+
+
+def sin_tipo(k):
+    return re.sub('^' + TIPOS + r'\s+', '', k)
+
+
 def main():
     calles = json.load(open(os.path.join(RAIZ, 'public', 'datos', 'calles.json'), encoding='utf-8'))
-    propios, dedicados = {}, {}
+    dedicados = {}
     for c in calles:
         corto = (c.get('c') or '').strip()
         if not corto or corto.lower().startswith('sin nombre') or re.fullmatch(r'[\d\s]+', corto):
             continue
-        propios[c['id']] = [f"{c['n']} (Sevilla)", f'{corto} (Sevilla)']
         dedicados[c['id']] = corto
 
-    pags = paginas([t for ts in propios.values() for t in ts] + list(dedicados.values()))
+    # artículos sobre calles de Sevilla: se sacan de las categorías (pocas peticiones) en vez de probar cada título
+    articulos_calles = set()
+    for cat in ('Calles de Sevilla', 'Plazas de Sevilla', 'Avenidas de Sevilla'):
+        articulos_calles |= set(miembros('Categoría:' + cat))
+    log('artículos de calles y plazas de Sevilla:', len(articulos_calles))
+    con_tipo = {clave(t): t for t in articulos_calles}
+    # «Sierpes (Sevilla)», sin tipo de vía en el título
+    sin_tipo_ = {clave(t): t for t in articulos_calles if not re.match(TIPOS + r'\s', clave(t))}
+
+    pags = paginas(list(dedicados.values()))
 
     elegido = {}
     for c in calles:
@@ -145,12 +184,9 @@ def main():
         if i not in dedicados:
             continue
         # 1. artículo de la propia calle
-        for t in propios[i]:
-            p = pags.get(t)
-            if p and 'disambiguation' not in p.get('pageprops', {}) and 'Sevilla' in (p.get('description') or '') + p['title']:
-                elegido[i] = ('calle', p)
-                break
-        if i in elegido:
+        t = con_tipo.get(clave(c['n'])) or sin_tipo_.get(sin_tipo(clave(c['n'])))
+        if t:
+            elegido[i] = ('calle', {'title': t})
             continue
         # 2. a quién o a qué está dedicada
         p = pags.get(dedicados[i])
