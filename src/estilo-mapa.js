@@ -84,10 +84,10 @@ const NOMBRE_SEGUN_ZOOM = ['step', ['zoom'], ['coalesce', ['get', 'e'], ['get', 
 /** Zooms con capa propia de nombres de calle, cada medio nivel (la última sigue hasta el máximo). */
 const ZOOMS_NOMBRES = Array.from({ length: 14 }, (_, i) => 13 + i / 2)
 /** Tamaño normal de la letra según el zoom y mínimo al que se reduce para caber en calles cortas. */
-const TAMANO = (zm) => (zm <= 16 ? 9.5 + (zm - 13) * 0.55 : Math.min(15, 11.15 + (zm - 16) * 1.15))
-const TAMANO_MINIMO = 6.5
+const TAMANO = (zm) => (zm <= 16 ? 11 + (zm - 13) * 0.8 : Math.min(18, 13.4 + (zm - 16) * 1.4))
+const TAMANO_MINIMO = 7
 /** Por debajo de este tamaño, en vez de reducir más el nombre abreviado se quita el tipo de vía. */
-const TAMANO_ABREVIADO = 8.5
+const TAMANO_ABREVIADO = 9.5
 
 /** Tamaño (px) con el que el texto `prop` cabe en la calle en el zoom `zm`: `f` (calculado con el abreviado `e`) · 2^zoom. */
 const cabe = (zm, prop) => ['*', ['get', 'f'], 2 ** zm, ['/', ['length', ['get', 'e']], ['max', 1, ['length', ['coalesce', ['get', prop], ['get', 'n']]]]]]
@@ -570,7 +570,7 @@ export function construirEstilo(tema = 'claro', termino = null) {
           visibility: 'none',
           'text-field': NOMBRE_SEGUN_ZOOM,
           'text-font': FUENTE_M,
-          'text-size': ['interpolate', ['linear'], ['zoom'], 12.5, 10.5, 15, 12.5, 18, 15.5],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 12.5, 12, 15, 14.5, 18, 18],
           'symbol-placement': 'line',
           'text-max-angle': 40,
           'symbol-spacing': ['interpolate', ['linear'], ['zoom'], 13, 140, 16, 300, 18, 450],
@@ -587,7 +587,7 @@ export function construirEstilo(tema = 'claro', termino = null) {
           visibility: 'none',
           'text-field': NOMBRE_SEGUN_ZOOM,
           'text-font': FUENTE_M,
-          'text-size': ['interpolate', ['linear'], ['zoom'], 15, 10, 18, 13.5],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 15, 11.5, 18, 15.5],
           'text-max-width': 7,
           'text-padding': 3,
         },
