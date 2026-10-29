@@ -444,13 +444,13 @@ export function construirEstilo(tema = 'claro', termino = null) {
         layout: { 'symbol-placement': 'line', 'symbol-spacing': 80, 'icon-image': 'flecha', 'icon-size': 0.7, 'icon-rotation-alignment': 'map', 'icon-allow-overlap': true },
         paint: { 'icon-color': '#ffffff' },
       },
-      // límites en un tono claro del color de cada zona: el color semitransparente sobre una línea blanca
+      // límites bien marcados: línea del color de cada zona con un filo blanco a cada lado para que destaque sobre el plano
       ...[
-        ['distritos', z([10, 1.6, 16, 3.5])],
-        ['barrios', z([11, 0.8, 16, 2])],
-      ].flatMap(([fuente, ancho]) => [
-        { id: fuente + '-linea-fondo', type: 'line', source: fuente, layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': ancho, 'line-opacity': 0.9 } },
-        { id: fuente + '-linea', type: 'line', source: fuente, layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': ancho, 'line-opacity': 0.45 } },
+        ['distritos', [10, 2.4, 13, 3.4, 16, 5.5], 3],
+        ['barrios', [11, 1.4, 13, 2, 16, 3.2], 2],
+      ].flatMap(([fuente, ancho, filo]) => [
+        { id: fuente + '-linea-fondo', type: 'line', source: fuente, layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': z(ancho.map((v, i) => (i % 2 ? v + filo : v))), 'line-opacity': 0.85 } },
+        { id: fuente + '-linea', type: 'line', source: fuente, layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': z(ancho), 'line-opacity': 1 } },
       ]),
       {
         id: 'barrio-sel-linea',
