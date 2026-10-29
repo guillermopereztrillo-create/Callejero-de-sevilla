@@ -904,7 +904,9 @@ def lugares(cs, union_geo):
         vistos.add(c)
         nombre = f['properties'].get('NOMBRE') or 'Dependencia del Servicio de Bomberos'
         m = re.search(r'n[ºo°]\s*(\d)', nombre)
-        anadir('bomberos', nombre, f, {'parque': int(m.group(1)) if m else None})
+        # solo los parques numerados van a la capa «Parques de bomberos»; las demás dependencias se quedan
+        # fuera de las capas (con su número de lugar, para no cambiar el de los demás)
+        anadir('bomberos' if m else 'dependencia_bomberos', nombre, f, {'parque': int(m.group(1))} if m else {'tipo': 'Dependencia del Servicio de Bomberos'})
 
     for f in ide_sevilla('Centros_de_Salud')['features']:
         p = f['properties']
