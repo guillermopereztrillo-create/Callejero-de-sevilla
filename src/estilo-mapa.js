@@ -74,14 +74,17 @@ const FUENTE = ['Noto Sans Regular']
 const FUENTE_M = ['Noto Sans Medium']
 const FUENTE_I = ['Noto Sans Italic']
 
+/** Lugares del mapa base que se muestran con la capa «Iglesias, capillas y lugares destacados». */
+export const DESTACADOS = ['place_of_worship', 'monastery', 'attraction', 'museum', 'townhall', 'castle', 'monument', 'memorial', 'archaeological_site', 'artwork', 'stadium', 'theatre', 'marketplace', 'park', 'garden', 'zoo', 'theme_park']
+
 const z = (pares) => ['interpolate', ['exponential', 1.6], ['zoom'], ...pares]
 
 export function anchoCalle(principal) {
-  return principal ? z([10, 0.8, 12, 1.6, 14, 4, 16, 11, 18, 34, 20, 110]) : z([11, 0.25, 13, 0.8, 14, 1.8, 16, 6.5, 18, 22, 20, 80])
+  return principal ? z([10, 1, 12, 2.2, 13, 3.4, 14, 5, 16, 11, 18, 34, 20, 110]) : z([11, 0.6, 12, 1.1, 13, 1.9, 14, 3, 15, 4.6, 16, 7, 18, 22, 20, 80])
 }
 
 const anchoBorde = (principal) =>
-  principal ? z([10, 1.4, 12, 2.6, 14, 5.6, 16, 13.5, 18, 38, 20, 116]) : z([12, 0.5, 13, 1.4, 14, 2.8, 16, 8.5, 18, 25, 20, 84])
+  principal ? z([10, 1.6, 12, 3, 13, 4.4, 14, 6.4, 16, 13.5, 18, 38, 20, 116]) : z([11, 0.9, 12, 1.6, 13, 2.6, 14, 4, 15, 5.8, 16, 8.8, 18, 25, 20, 84])
 
 /** Construye el estilo completo. `termino` es la geometría del término municipal (para no duplicar calles). */
 export function construirEstilo(tema = 'claro', termino = null) {
@@ -196,7 +199,7 @@ export function construirEstilo(tema = 'claro', termino = null) {
         type: 'fill',
         source: 'manzanas',
         minzoom: 11,
-        paint: { 'fill-color': P.manzana, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0.55, 14, 1] },
+        paint: { 'fill-color': P.manzana, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0.8, 13, 1] },
       },
       {
         id: 'manzanas-borde',
@@ -492,14 +495,42 @@ export function construirEstilo(tema = 'claro', termino = null) {
         paint: { 'text-color': P.texto, 'text-halo-color': P.halo, 'text-halo-width': 1.4 },
       },
       {
+        id: 'destacados',
+        type: 'circle',
+        source: 'base',
+        'source-layer': 'pois',
+        minzoom: 13,
+        filter: ['all', ['in', ['get', 'kind'], ['literal', DESTACADOS]], ['has', 'name'], termino ? ['within', termino] : true],
+        layout: { visibility: 'none' },
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 3, 16, 5.5, 18, 7],
+          'circle-color': ['match', ['get', 'kind'], 'place_of_worship', '#8E4A9E', 'monastery', '#8E4A9E', '#C2701E'],
+          'circle-stroke-color': '#fff',
+          'circle-stroke-width': 1.4,
+        },
+      },
+      {
         id: 'base-lugares',
         type: 'symbol',
         source: 'base',
         'source-layer': 'pois',
-        minzoom: 15,
-        filter: ['all', ['in', ['get', 'kind'], ['literal', ['museum', 'attraction', 'townhall', 'university', 'hospital', 'stadium', 'station', 'marketplace', 'place_of_worship', 'park']]], termino ? ['within', termino] : true],
-        layout: { 'text-field': ['coalesce', ['get', 'name:es'], ['get', 'name']], 'text-font': FUENTE, 'text-size': 11, 'text-max-width': 8 },
-        paint: { 'text-color': P.textoSuave, 'text-halo-color': P.halo, 'text-halo-width': 1.2 },
+        minzoom: 14,
+        filter: ['all', ['in', ['get', 'kind'], ['literal', DESTACADOS]], termino ? ['within', termino] : true],
+        layout: {
+          visibility: 'none',
+          'text-field': ['coalesce', ['get', 'name:es'], ['get', 'name']],
+          'text-font': FUENTE,
+          'text-size': ['interpolate', ['linear'], ['zoom'], 14, 10.5, 17, 12.5],
+          'text-max-width': 8,
+          'text-offset': [0, 0.9],
+          'text-anchor': 'top',
+          'text-optional': true,
+        },
+        paint: {
+          'text-color': ['match', ['get', 'kind'], 'place_of_worship', '#6E3A7C', 'monastery', '#6E3A7C', '#8A4F12'],
+          'text-halo-color': P.halo,
+          'text-halo-width': 1.4,
+        },
       },
       {
         id: 'rotulos-barrios',

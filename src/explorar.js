@@ -3,7 +3,7 @@
 import { D } from './datos.js'
 import { mapa, limpiarMarcas, marcarBarrio, encuadrar, encuadrarCalles, marcar, calleEn, activarEncima } from './mapa.js'
 import { parques } from './rutas.js'
-import { mostrarCalle as fichaCalle, mostrarLugar as fichaLugar, mostrarCarretera, cerrarFicha } from './ficha.js'
+import { mostrarCalle as fichaCalle, mostrarLugar as fichaLugar, mostrarCarretera, mostrarDestacado, cerrarFicha } from './ficha.js'
 import { sesion, abrirAcceso } from './cuentas.js'
 import { app } from './app.js'
 import { resumen } from './progreso.js'
@@ -31,6 +31,8 @@ export function montarExplorar() {
     ]
     const l = mapa.queryRenderedFeatures(caja, { layers: ['lugares'] })[0]
     if (l) return fichaLugar(l.properties.id)
+    const dst = mapa.getLayoutProperty('destacados', 'visibility') === 'visible' && mapa.queryRenderedFeatures(caja, { layers: ['destacados'] })[0]
+    if (dst) return mostrarDestacado(dst.properties, dst.geometry.coordinates)
     const id = calleEn(e.point, 8)
     if (id != null) return fichaCalle(id, { lngLat: [e.lngLat.lng, e.lngLat.lat], enfocar: false })
     const v = mapa.getLayer('carreteras-acceso') && mapa.queryRenderedFeatures(caja, { layers: ['carreteras-acceso'] })[0]
