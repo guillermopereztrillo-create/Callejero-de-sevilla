@@ -19,7 +19,7 @@ const PASOS = [
   },
   {
     titulo: 'Pruébalo: toca una calle',
-    texto: 'Toca cualquier calle del plano y verás su ficha: barrio, distrito, calles en las que acaba, paralelas y la ruta desde cada parque de bomberos.',
+    texto: 'Toca cualquier calle del plano y aparecerá su ficha junto a ella: barrio, distrito, cruces, la vista de la calle y la ruta desde el parque de bomberos.',
     esperar: 'calle',
     pestana: 'explorar',
   },
@@ -30,7 +30,7 @@ const PASOS = [
   },
   {
     titulo: 'Capas del plano',
-    texto: 'El <b>mapa mudo</b> no muestra nombres, como en el examen. Activa los nombres, los distritos, el sentido de circulación o el <b>satélite PNOA</b> cuando quieras.',
+    texto: 'El <b>mapa mudo</b> no muestra nombres, como en el examen. Activa los nombres, los distritos y barrios, las flechas de sentido, las carreteras de acceso, los puntos de interés o el <b>satélite PNOA</b> cuando quieras.',
     resaltar: '#capas',
     capas: true,
   },
@@ -133,12 +133,13 @@ function paso(i) {
     $('#app').classList.remove('menu-abierto')
     alTocarCalle = () =>
       setTimeout(() => {
-        if (document.querySelector('#panel-explorar .ficha h2')) {
-          tarjeta.querySelector('p').innerHTML = `¡Eso es! Mira su ficha en el panel: <b>${esc(document.querySelector('#panel-explorar .ficha h2').textContent)}</b>.`
+        const h = document.querySelector('.ficha-globo .ficha h3')
+        if (h) {
+          tarjeta.querySelector('p').innerHTML = `¡Eso es! Su ficha ha aparecido junto a la calle: <b>${esc(h.textContent)}</b>. Desde ella puedes verla en Street View o trazar la ruta desde el parque de bomberos.`
           $('#tut-sig').textContent = 'Siguiente'
           mapa.off('click', alTocarCalle)
         }
-      }, 50)
+      }, 400)
     mapa.on('click', alTocarCalle)
   }
 }

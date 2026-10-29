@@ -5,17 +5,21 @@ import { aplicarTema } from './mapa.js'
 import { P, guardar, resumen, plan, exportar, importar, borrarTodo, alCambiar } from './progreso.js'
 import { abrirDialogo, cerrarDialogo, confirmar, fuentes } from './dialogos.js'
 import { tutorial } from './tutorial.js'
+import { sesion, abrirAcceso, cerrarSesion, cambiarCuenta } from './cuentas.js'
 import { $, esc, icono, guardado, descargarArchivo, aviso, numero } from './util.js'
 
 export function montarCuenta() {
-  $('#boton-cuenta').onclick = abrirCuenta
+  $('#boton-cuenta').onclick = () => (sesion() ? abrirCuenta() : abrirAcceso('crear'))
   alCambiar(pintarAvatar)
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => guardado.leer('tema', null) === 'auto' && ponerTema('auto'))
 }
 
 export function pintarAvatar() {
   const b = $('#boton-cuenta')
-  b.innerHTML = P.nombre ? esc(P.nombre.trim().charAt(0).toUpperCase()) : icono.personas(20)
+  const c = sesion()
+  b.innerHTML = c ? esc(c.nombre.trim().charAt(0).toUpperCase()) : '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6 9c.6-3.4 3-5.5 6-5.5 1.3 0 2.5.4 3.4 1M18 13v6M15 16h6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>'
+  b.title = c ? `Mi cuenta · ${c.nombre}` : 'Crear cuenta o entrar'
+  b.setAttribute('aria-label', b.title)
 }
 
 function ponerTema(t) {
@@ -29,7 +33,8 @@ function ponerTema(t) {
   aplicarTema()
 }
 
-function abrirCuenta() {
+export function abrirCuenta() {
+  const cuenta = sesion()
   const r = resumen()
   const total = D.calles.filter(estudiable).length
   const pl = plan(total)
@@ -48,8 +53,14 @@ function abrirCuenta() {
   const dl = abrirDialogo(
     `<div class="dialogo-cuerpo">
       <div class="antetitulo">Mi cuenta</div>
-      <h2>${P.nombre ? esc(P.nombre) : 'Tu progreso'}</h2>
-      <p>Se guarda en este navegador. Exporta una copia para pasarlo a otro dispositivo.</p>
+      <h2>${cuenta ? esc(cuenta.nombre) : 'Tu progreso'}</h2>
+      ${
+        cuenta
+          ? `<p>${esc(cuenta.correo)} · ${cuenta.tipo === 'nube' ? 'tu progreso se sincroniza en todos tus dispositivos' : 'cuenta guardada en este dispositivo'}.</p>
+             <div class="acciones"><button type="button" class="secundario pequeno" id="c-cambiar">Cambiar de cuenta</button><button type="button" class="secundario pequeno" id="c-salir">Cerrar sesión</button></div>`
+          : `<p>Estás sin cuenta: tu progreso solo se guarda en este navegador.</p>
+             <div class="acciones"><button type="button" class="principal pequeno" id="c-crear">Crear cuenta gratis</button><button type="button" class="secundario pequeno" id="c-entrar">Ya tengo cuenta</button></div>`
+      }
       <div class="cifras" style="margin:14px 0">
         <div><b>${r.racha}</b><small>días seguidos</small></div>
         <div><b>${r.vistas}</b><small>calles practicadas</small></div>
@@ -86,6 +97,10 @@ function abrirCuenta() {
     <div class="dialogo-pie"><div class="derecha"><button class="principal" data-cerrar>Listo</button></div></div>`,
     { ancho: true },
   )
+  if ($('#c-salir')) $('#c-salir').onclick = cerrarSesion
+  if ($('#c-cambiar')) $('#c-cambiar').onclick = cambiarCuenta
+  if ($('#c-crear')) $('#c-crear').onclick = () => abrirAcceso('crear')
+  if ($('#c-entrar')) $('#c-entrar').onclick = () => abrirAcceso('entrar')
   $('#c-nombre').onchange = (e) => {
     P.nombre = e.target.value.trim()
     guardar()

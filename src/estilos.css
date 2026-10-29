@@ -15,6 +15,7 @@
   --acento-fuerte: #8e4424;
   --acento-suave: #f5e6da;
   --amarillo: #f2c14e;
+  --peatonal: #ef86b5;
   --azul: #9dc1e3;
   --ok: #3b8a57;
   --ok-suave: #e2f1e6;
@@ -45,6 +46,7 @@
   --texto-3: #918172;
   --acento: #d97d4f;
   --acento-fuerte: #e8956a;
+  --peatonal: #f27ab4;
   --acento-suave: #3b2a20;
   --ok: #6cc08a;
   --ok-suave: #1f3427;
@@ -2157,6 +2159,8 @@ a {
 }
 
 .dialogo-cuerpo input[type='text'],
+.dialogo-cuerpo input[type='email'],
+.dialogo-cuerpo input[type='password'],
 .dialogo-cuerpo input[type='date'],
 .dialogo-cuerpo input[type='number'],
 .dialogo-cuerpo textarea,
@@ -2572,4 +2576,272 @@ body.en-portada .maplibregl-ctrl-bottom-left {
   font-size: 21px;
   color: var(--texto);
   margin: 12px 0;
+}
+
+/* ---------- ficha flotante sobre el plano ---------- */
+
+.ficha-globo {
+  z-index: 9;
+}
+
+.ficha-globo .maplibregl-popup-content {
+  padding: 14px 16px 12px;
+  border-radius: 16px;
+  max-height: min(62vh, 560px);
+  overflow-y: auto;
+  border: 1px solid var(--borde);
+  scrollbar-width: thin;
+}
+
+.ficha-globo .maplibregl-popup-close-button {
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ficha-globo .maplibregl-popup-close-button:hover {
+  background: var(--superficie-2);
+}
+
+.ficha-globo h3 {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 2px 26px 4px 0;
+}
+
+.ficha-globo .ficha-datos {
+  margin: 8px 0;
+  font-size: 13.5px;
+}
+
+.ficha-globo .ficha-acciones {
+  margin-top: 8px;
+}
+
+.ficha-mas {
+  margin-top: 10px;
+  border-top: 1px solid var(--borde);
+}
+
+.ficha-mas > summary {
+  cursor: pointer;
+  padding: 8px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--acento);
+}
+
+.ficha-mas .ficha-seccion {
+  margin-top: 10px;
+}
+
+.ficha-mas .chip {
+  font-size: 12.5px;
+  padding: 3px 9px;
+}
+
+.ficha-pdi {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ficha-pdi button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  font-size: 13px;
+  text-align: left;
+  border-radius: 6px;
+}
+
+.ficha-pdi button:hover {
+  background: var(--superficie-2);
+}
+
+.ficha-pdi b {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--texto-3);
+  white-space: nowrap;
+}
+
+.ruta-resultado:empty {
+  display: none;
+}
+
+.ruta-resultado {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--superficie-2);
+}
+
+.ruta-pasos {
+  margin: 6px 0 8px;
+  padding-left: 20px;
+  font-size: 13px;
+}
+
+/* ---------- vista de la calle ---------- */
+
+.vista-panel {
+  position: absolute;
+  right: 76px;
+  bottom: 28px;
+  width: min(560px, calc(100% - 110px));
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-g);
+  box-shadow: var(--sombra);
+  z-index: 9;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: aparecer 0.25s ease both;
+}
+
+.vista-panel .ventana-barra {
+  padding: 9px 12px;
+  gap: 6px;
+}
+
+.vista-panel .ventana-titulo {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vista-cuerpo {
+  height: 320px;
+  background: #ddd;
+}
+
+.vista-panel.grande {
+  width: calc(100% - 110px);
+  top: 76px;
+}
+
+.vista-panel.grande .vista-cuerpo {
+  height: auto;
+  flex: 1;
+}
+
+.vista-panel.minimizada .vista-cuerpo,
+.vista-panel.minimizada .vista-mandos {
+  display: none;
+}
+
+.vista-cuerpo iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.vista-mandos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+}
+
+.vista-mandos .enlace {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--acento);
+  font-weight: 600;
+}
+
+.marcador-vista {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2f7cd9;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgba(47, 124, 217, 0.25), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- capas: muestras de color ---------- */
+
+.muestra {
+  display: inline-block;
+  width: 18px;
+  height: 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+.muestra-flecha {
+  font-style: normal;
+  font-weight: 700;
+  margin-left: 6px;
+  color: var(--texto);
+}
+
+/* ---------- portada: cuenta ---------- */
+
+.inicio-cuenta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 18px;
+  font-size: 14px;
+}
+
+.inicio-cuenta span {
+  width: 1px;
+  height: 22px;
+  background: var(--borde-2);
+}
+
+.enlace-acento {
+  color: var(--acento);
+  font-weight: 600;
+}
+
+.enlace-fuerte {
+  font-weight: 600;
+}
+
+@media (max-width: 820px) {
+  .vista-panel,
+  .vista-panel.grande {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: 8px;
+    top: auto;
+  }
+
+  .vista-cuerpo {
+    height: 42vh;
+  }
+}
+
+.capa-leyenda [data-carretera] b {
+  flex: none;
+  min-width: 52px;
+  white-space: nowrap;
+}
+
+.dialogo-cuerpo label.interruptor {
+  display: flex;
+  color: var(--texto);
+  font-size: 14px;
 }

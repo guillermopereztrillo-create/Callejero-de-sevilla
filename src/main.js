@@ -15,6 +15,9 @@ import { montarAnotaciones } from './anotaciones.js'
 import { montarDialogos } from './dialogos.js'
 import { montarCuenta, pintarAvatar } from './cuenta.js'
 import { tutorial } from './tutorial.js'
+import { montarVista, cerrarVista } from './vista.js'
+import { cerrarFicha } from './ficha.js'
+import { iniciarCuentas, abrirAcceso, sesion } from './cuentas.js'
 import { app } from './app.js'
 import { $, $$, guardado } from './util.js'
 
@@ -75,14 +78,14 @@ function paddingPortada() {
   mapa.setPadding({ left: Math.max(0, $('.inicio-panel').offsetWidth - lat), right: 0, top: 0, bottom: 0 })
 }
 
-function entrar() {
+function entrar(conTutorial = true) {
   const ini = $('#inicio')
   ini.classList.add('saliendo')
   document.body.classList.remove('en-portada')
   mapa.easeTo({ padding: { left: 0, right: 0, top: 0, bottom: 0 }, zoom: 13, duration: 900 })
   setTimeout(() => {
     ini.hidden = true
-    if (!guardado.leer('tutorialVisto', false)) tutorial()
+    if (conTutorial && !guardado.leer('tutorialVisto', false)) tutorial()
   }, 520)
   guardado.escribir('entrado', true)
 }
@@ -112,6 +115,8 @@ function cambiarPestana(nombre, opciones = {}) {
   })
   $$('.panel-lateral').forEach((p) => (p.hidden = p.dataset.panel !== nombre))
   if (anterior !== nombre) {
+    cerrarFicha()
+    cerrarVista()
     MODULOS[anterior]?.(false)
     if (!app.juego) {
       limpiarMarcas()
@@ -189,6 +194,8 @@ async function arrancar() {
   montarAnotaciones()
   montarCuenta()
   pintarAvatar()
+  montarVista()
+  iniciarCuentas().catch((e) => console.warn(e))
 
   const boton = $('#inicio-entrar')
   boton.disabled = false
@@ -197,6 +204,22 @@ async function arrancar() {
   boton.onclick = () => {
     clearInterval(intervalo)
     entrar()
+  }
+  // con sesión iniciada la portada saluda; sin ella, ofrece crear cuenta o entrar
+  const c = sesion()
+  if (c) {
+    $('.inicio-nota').innerHTML = `Hola, <b>${c.nombre.replace(/[<&>]/g, '')}</b>. Tu progreso te espera.`
+    $('.inicio-cuenta').hidden = true
+  }
+  $('#inicio-crear').onclick = () => {
+    clearInterval(intervalo)
+    entrar(false)
+    abrirAcceso('crear')
+  }
+  $('#inicio-entrar-cuenta').onclick = () => {
+    clearInterval(intervalo)
+    entrar(false)
+    abrirAcceso('entrar')
   }
 
   const inicial = guardado.leer('pestana', 'explorar')
