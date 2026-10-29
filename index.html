@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>Callejero de Sevilla · Estudia las calles para la oposición de bombero</title>
+    <meta name="description" content="Aprende las calles de Sevilla sobre el mapa: ejercicios, test con preguntas de exámenes oficiales, rutas desde los parques de bomberos y tu progreso." />
+    <meta name="theme-color" content="#FAF6EF" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <script>
+      try {
+        var t = localStorage.getItem('callejero.tema')
+        if (t === 'oscuro' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.dataset.tema = 'oscuro'
+      } catch (e) {}
+    </script>
+    <script type="module" src="./src/main.js"></script>
+  </head>
+  <body class="en-portada">
+    <!-- Portada: presentación sobre el mapa de Sevilla -->
+    <div class="inicio" id="inicio">
+      <main class="inicio-panel">
+        <div class="inicio-contenido">
+          <img class="inicio-simbolo" src="./marca/simbolo.svg" alt="" width="104" height="104" />
+          <h1 class="inicio-titulo">Callejero<br />de Sevilla</h1>
+          <p class="inicio-lema">Estudia el callejero de Sevilla para la oposición de bombero, sobre el plano.</p>
+          <button type="button" class="principal grande inicio-entrar" id="inicio-entrar" disabled>
+            <span id="inicio-entrar-texto">Preparando el plano…</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+          <div class="inicio-carga" aria-live="polite"><div class="barra"><span id="inicio-progreso"></span></div></div>
+          <p class="inicio-nota">Sin registrarte y gratis. Tu progreso, tus anotaciones y tus propias preguntas se guardan en este navegador, y puedes exportarlos cuando quieras.</p>
+          <p class="inicio-legal"><button type="button" class="enlace" data-abrir="fuentes">Fuentes de datos</button> · <button type="button" class="enlace" data-abrir="privacidad">Privacidad</button></p>
+          <p class="dato-curioso" id="inicio-dato" aria-live="off"></p>
+        </div>
+      </main>
+      <div class="inicio-mapa" id="inicio-mapa" aria-hidden="true"></div>
+    </div>
+
+    <!-- Cabecera móvil -->
+    <header class="cabecera-movil">
+      <a class="logo-compacto" href="./">
+        <img src="./marca/simbolo.svg" alt="" width="36" height="36" />
+        <span>Callejero</span>
+      </a>
+      <button class="boton-menu" id="boton-menu" aria-label="Abrir menú" aria-expanded="false" aria-controls="lateral">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+      </button>
+    </header>
+
+    <div class="app" id="app">
+      <aside class="lateral" id="lateral">
+        <div class="lateral-cabecera">
+          <a class="logo-horizontal" href="./">
+            <img src="./marca/simbolo.svg" alt="" width="52" height="52" />
+            <strong>Callejero de Sevilla</strong>
+          </a>
+          <button type="button" class="minimizar" id="lateral-minimizar" aria-label="Minimizar el panel" title="Minimizar">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+          </button>
+        </div>
+        <nav class="pestanas" aria-label="Modo" role="tablist">
+          <span class="pestanas-indicador" aria-hidden="true"></span>
+          <button role="tab" data-pestana="explorar" aria-selected="true"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 1 0 0-18Zm3.5 5.5-2 5-5 2 2-5 5-2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg><span>Explorar</span></button>
+          <button role="tab" data-pestana="aprender" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5Zm0 0v13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg><span>Aprender</span></button>
+          <button role="tab" data-pestana="practicar" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 1 0 0-18Zm0 4a5 5 0 1 0 0 10 5 5 0 1 0 0-10Zm0 4.2a.8.8 0 1 0 0 1.6.8.8 0 1 0 0-1.6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg><span>Practicar</span></button>
+          <button role="tab" data-pestana="examen" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 3.5h6v3H9zM8.5 5H6v15.5h12V5h-2.5M9 13.5l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg><span>Examen</span></button>
+          <button role="tab" data-pestana="grupos" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 11.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5 8c.5-2.8 2.4-4.5 5-4.5s4.5 1.7 5 4.5M5.5 10.5a2.3 2.3 0 1 0 0-4.6M2.5 17c.3-2 1.4-3.2 3-3.6M18.5 10.5a2.3 2.3 0 1 1 0-4.6M21.5 17c-.3-2-1.4-3.2-3-3.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg><span>Grupos</span></button>
+        </nav>
+        <div class="panel-lateral" data-panel="explorar" id="panel-explorar"></div>
+        <div class="panel-lateral" data-panel="aprender" id="panel-aprender" hidden></div>
+        <div class="panel-lateral" data-panel="practicar" id="panel-practicar" hidden></div>
+        <div class="panel-lateral" data-panel="examen" id="panel-examen" hidden></div>
+        <div class="panel-lateral" data-panel="grupos" id="panel-grupos" hidden></div>
+      </aside>
+      <div class="velo" id="velo"></div>
+
+      <main class="zona-mapa">
+        <div id="mapa"></div>
+
+        <div class="barra-superior">
+          <button class="chip-ventana" id="chip-lateral" type="button" hidden>
+            <img src="./marca/simbolo.svg" alt="" width="20" height="20" /> Panel
+          </button>
+          <button class="avatar" id="boton-cuenta" type="button" aria-label="Mi cuenta" title="Mi cuenta"></button>
+          <div class="buscador" id="buscador" role="search">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2" /><path d="M15.5 15.5 20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+            <input id="buscador-texto" type="search" enterkeyhint="search" autocorrect="off" placeholder="Buscar calle, barrio o lugar…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="buscador-lista" aria-label="Buscar una calle, un barrio, un lugar o un cruce" />
+            <button id="buscador-borrar" class="buscador-borrar" type="button" aria-label="Borrar búsqueda" hidden>×</button>
+            <ul id="buscador-lista" class="buscador-lista" role="listbox" hidden></ul>
+          </div>
+          <button class="chip-ventana" id="chip-capas" type="button" hidden>
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg> <span>Capas</span>
+          </button>
+        </div>
+
+        <div class="capas" id="capas"></div>
+
+        <div class="mandos-mapa">
+          <div class="escala-hueco" id="escala"></div>
+          <button type="button" class="mando" id="boton-3d" title="Vista 3D" aria-pressed="false">3D</button>
+          <button type="button" class="mando" id="boton-norte" title="Orientar al norte"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><text x="12" y="7" text-anchor="middle" font-size="5.5" font-weight="700" fill="currentColor" font-family="Inter, sans-serif">N</text><path d="M12 8.5 14 15l-2-1.2L10 15Z" fill="#C0502B" /><path d="M12 20.5 10 15l2 1.2 2-1.2Z" fill="currentColor" opacity=".45" /></svg></button>
+          <div class="zoom">
+            <button type="button" class="mando" id="zoom-mas" aria-label="Acercar">+</button>
+            <button type="button" class="mando" id="zoom-menos" aria-label="Alejar">−</button>
+          </div>
+        </div>
+
+        <!-- Anotaciones -->
+        <div class="anotar" id="anotar" hidden></div>
+        <button type="button" class="sello" id="boton-anotar" aria-expanded="false" aria-controls="anotar" title="Anotaciones: dibujar, medir, escribir y marcar sobre el plano">
+          <img src="./marca/simbolo.svg" alt="" width="22" height="22" />
+          <span>Anotaciones</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+
+        <!-- Ventana de test / examen -->
+        <section class="test" id="test" hidden aria-live="polite"></section>
+        <button class="volver-test principal" id="test-volver" hidden>← Volver al test</button>
+
+        <!-- Tarjeta de pregunta (practicar y aprender) -->
+        <div class="pregunta" id="pregunta" hidden></div>
+        <div class="aviso" id="aviso" role="status" aria-live="polite" hidden></div>
+      </main>
+    </div>
+
+    <dialog class="dialogo" id="dialogo"></dialog>
+  </body>
+</html>
