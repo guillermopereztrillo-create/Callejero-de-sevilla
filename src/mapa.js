@@ -110,7 +110,12 @@ export async function crearMapa(contenedor) {
     if (!/pnoa|elevation|glyph/i.test(String(e?.error?.message || e?.sourceId || ''))) console.warn(e.error || e)
   })
 
-  await new Promise((r) => mapa.once('load', r))
+  // sin conexión el mapa base (PMTiles) no llega y el evento «load» no se dispara:
+  // basta con que el estilo esté cargado para seguir con el callejero, que sí está guardado
+  await new Promise((r) => {
+    mapa.once('load', r)
+    mapa.once('style.load', () => setTimeout(r, navigator.onLine ? 15000 : 1500))
+  })
   if (import.meta.env.DEV || location.hostname === 'localhost') window.__mapa = mapa
   mapa.getContainer().querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
   if (!mapa.hasImage('flecha')) mapa.addImage('flecha', imagenFlecha(), { sdf: true })
