@@ -170,7 +170,8 @@ export function aplicarCapas() {
   vis('rotulos-barrios', capas.barrios && !ocultarNombres)
   vis('peatonales', capas.peatonales)
   vis('sentidos', capas.sentido)
-  vis('poligonos', capas.poligonos)
+  for (const id of ['poligonos', 'poligonos-linea-fondo', 'poligonos-linea']) vis(id, capas.poligonos)
+  vis('poligonos-nombres', capas.poligonos && !ocultarNombres)
   for (const id of ['carreteras-acceso-borde', 'carreteras-acceso', 'carreteras-ref']) vis(id, capas.carreteras)
   vis('carreteras-entradas', capas.carreteras && !ocultarNombres)
 
@@ -183,10 +184,10 @@ export function aplicarCapas() {
   }
   const cats = capas.pdi || []
   const filtro = ['in', ['get', 'cat'], ['literal', cats]]
-  // los colegios son muchos: aparecen al acercarse
-  const filtroZoom = ['all', filtro, ['any', ['!=', ['get', 'cat'], 'educacion'], ['>=', ['zoom'], 14]]]
-  mapa.setFilter('lugares', filtroZoom)
-  mapa.setFilter('lugares-letra', filtroZoom)
+  mapa.setFilter('lugares', filtro)
+  mapa.setFilter('lugares-letra', filtro)
+  vis('colegios', cats.includes('educacion'))
+  vis('colegios-linea', cats.includes('educacion'))
   mapa.setFilter('lugares-nombres', filtro)
   vis('lugares-nombres', !ocultarNombres)
   vis('bic', cats.includes('monumento'))

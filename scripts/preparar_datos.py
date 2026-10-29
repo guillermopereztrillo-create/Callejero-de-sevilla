@@ -823,6 +823,43 @@ def manzanas(termino):
     return {'type': 'FeatureCollection', 'features': out}
 
 
+# ----------------------------------------------------------------------------- polígonos industriales y colegios
+
+NOMBRES_POLIGONO = {'Higueron Sur': 'Higuerón Sur', 'San Jeronimo': 'San Jerónimo', 'Zonas Industriales': 'Zona industrial'}
+
+
+def poligonos():
+    """Polígonos industriales del Ayuntamiento, con su nombre (los trozos de un mismo polígono se unen)."""
+    partes = {}
+    for f in ide_sevilla('AREA_POLIGONOS')['features']:
+        if f.get('geometry'):
+            n = (f['properties'].get('Nombre') or '').strip()
+            n = NOMBRES_POLIGONO.get(n, n)
+            partes.setdefault(n, []).append(shape(f['geometry']).buffer(0))
+    out = []
+    for n, gs in partes.items():
+        # las zonas industriales sueltas son pequeñas y están separadas: cada una por su lado
+        for g in (gs if n == 'Zona industrial' else [unary_union(gs)]):
+            out.append({'type': 'Feature', 'properties': {'nombre': n if n == 'Zona industrial' else 'P.I. ' + n},
+                        'geometry': redondear(g.simplify(0.000005), 6)})
+    log('polígonos industriales:', len(out))
+    return {'type': 'FeatureCollection', 'features': out}
+
+
+def colegios():
+    """Parcelas de los centros educativos (Ayuntamiento · Educación), con nombre, tipo y dirección."""
+    out = []
+    for f in ide_sevilla('Ayto_Educacion_Colegios_DATOS')['features']:
+        p = f['properties']
+        if f.get('geometry') and (p.get('DENOMINACI') or '').strip():
+            out.append({'type': 'Feature', 'properties': {
+                'nombre': p['DENOMINACI'].strip(), 'tipo': (p.get('Tipo') or '').strip(),
+                'titularidad': (p.get('TITULARIDA') or '').strip(), 'direccion': re.sub(r'\s+', ' ', p.get('DOMICILIO') or '').strip()},
+                'geometry': redondear(shape(f['geometry']).buffer(0).simplify(0.000003), 6)})
+    log('parcelas de colegios:', len(out))
+    return {'type': 'FeatureCollection', 'features': out}
+
+
 # ----------------------------------------------------------------------------- lugares de interés
 
 def lugares(cs, union_geo):
@@ -1088,6 +1125,8 @@ def main():
                 bic.append({'type': 'Feature', 'properties': {'nombre': f['properties']['DENOMINACI'].strip(), 'tipo': (f['properties'].get('TJ_R_E') or '').strip()},
                             'geometry': redondear(g, 6)})
     guardar('bic.geojson', {'type': 'FeatureCollection', 'features': bic})
+    guardar('poligonos.geojson', poligonos())
+    guardar('colegios.geojson', colegios())
     guardar('manzanas.geojson', manzanas(termino))
     guardar('test-oficiales.json', examenes())
     destino_base = os.path.join(RAIZ, 'public', 'datos', 'base-sevilla.pmtiles')

@@ -70,6 +70,9 @@ export const PALETAS = {
   },
 }
 
+/** Color de los polígonos industriales (no lo usa ningún distrito). */
+const COLOR_POLIGONO = '#9C27B0'
+
 const FUENTE = ['Noto Sans Regular']
 const FUENTE_M = ['Noto Sans Medium']
 const FUENTE_I = ['Noto Sans Italic']
@@ -176,6 +179,8 @@ export function construirEstilo(tema = 'claro', termino = null) {
         buffer: 256,
         attribution: 'Callejero: <a href="https://www.callejerodeandalucia.es/" target="_blank">CDAU</a>, Junta de Andalucía (CC BY 4.0)',
       },
+      poligonos: { type: 'geojson', data: BASE + 'poligonos.geojson' },
+      colegios: { type: 'geojson', data: BASE + 'colegios.geojson' },
       distritos: {
         type: 'geojson',
         data: BASE + 'distritos.geojson',
@@ -227,15 +232,6 @@ export function construirEstilo(tema = 'claro', termino = null) {
         'source-layer': 'landuse',
         filter: ['in', ['get', 'kind'], ['literal', ['industrial', 'railway', 'aerodrome', 'runway', 'taxiway']]],
         paint: { 'fill-color': P.industrial },
-      },
-      {
-        id: 'poligonos',
-        type: 'fill',
-        source: 'base',
-        'source-layer': 'landuse',
-        filter: ['==', ['get', 'kind'], 'industrial'],
-        layout: { visibility: 'none' },
-        paint: { 'fill-color': '#9B7AB8', 'fill-opacity': 0.28, 'fill-outline-color': '#7A5BA0' },
       },
       { id: 'agua', type: 'fill', source: 'base', 'source-layer': 'water', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': P.agua } },
       {
@@ -452,6 +448,13 @@ export function construirEstilo(tema = 'claro', termino = null) {
         { id: fuente + '-linea-fondo', type: 'line', source: fuente, layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': z(ancho.map((v, i) => (i % 2 ? v + filo : v))), 'line-opacity': 0.85 } },
         { id: fuente + '-linea', type: 'line', source: fuente, layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': z(ancho), 'line-opacity': 1 } },
       ]),
+      // polígonos industriales (Ayuntamiento): delimitados como los barrios, en violeta para distinguirlos
+      { id: 'poligonos', type: 'fill', source: 'poligonos', layout: { visibility: 'none' }, paint: { 'fill-color': COLOR_POLIGONO, 'fill-opacity': 0.22 } },
+      { id: 'poligonos-linea-fondo', type: 'line', source: 'poligonos', layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': z([10, 3.5, 13, 4.5, 16, 6.5]), 'line-opacity': 0.85 } },
+      { id: 'poligonos-linea', type: 'line', source: 'poligonos', layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': COLOR_POLIGONO, 'line-width': z([10, 1.6, 13, 2.2, 16, 3.5]) } },
+      // parcelas de los colegios (Ayuntamiento · Educación), con la capa «Colegios e institutos»
+      { id: 'colegios', type: 'fill', source: 'colegios', minzoom: 12, layout: { visibility: 'none' }, paint: { 'fill-color': '#4F8FE8', 'fill-opacity': 0.5 } },
+      { id: 'colegios-linea', type: 'line', source: 'colegios', minzoom: 12, layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': CATEGORIAS.educacion.color, 'line-width': z([12, 0.8, 16, 2]) } },
       {
         id: 'barrio-sel-linea',
         type: 'line',
@@ -624,6 +627,14 @@ export function construirEstilo(tema = 'claro', termino = null) {
           'text-halo-color': P.halo,
           'text-halo-width': 1.4,
         },
+      },
+      {
+        id: 'poligonos-nombres',
+        type: 'symbol',
+        source: 'poligonos',
+        minzoom: 11,
+        layout: { visibility: 'none', 'text-field': ['get', 'nombre'], 'text-font': FUENTE_M, 'text-size': ['interpolate', ['linear'], ['zoom'], 11, 11, 15, 14], 'text-max-width': 8, 'text-padding': 4 },
+        paint: { 'text-color': '#5E1A78', 'text-halo-color': '#ffffff', 'text-halo-width': 1.8 },
       },
       {
         id: 'rotulos-barrios',

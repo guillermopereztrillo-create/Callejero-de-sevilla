@@ -163,7 +163,7 @@ export const CATEGORIAS = {
   policia: { nombre: 'Policía Local', color: '#3D5A80', letra: 'P' },
   monumento: { nombre: 'Monumentos (BIC)', color: '#8E5B3A', letra: 'M' },
   museo: { nombre: 'Museos', color: '#7A5BA0', letra: 'm' },
-  educacion: { nombre: 'Colegios e institutos', color: '#B9822F', letra: 'E' },
+  educacion: { nombre: 'Colegios e institutos', color: '#1565C0', letra: 'E' },
   universidad: { nombre: 'Universidades', color: '#5C6BC0', letra: 'U' },
   transporte: { nombre: 'Metro, tren y autobuses', color: '#1E88A8', letra: 'T' },
   mercado: { nombre: 'Mercados', color: '#4D8B4A', letra: '€' },
