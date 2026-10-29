@@ -160,9 +160,11 @@ export function aplicarCapas() {
   vis('base-lugares', capas.destacados && !ocultarNombres)
   vis('agua-nombres', etiquetasBase)
 
+  vis('distritos-linea-fondo', capas.distritos)
   vis('distritos-linea', capas.distritos)
   vis('distritos-relleno', capas.distritos)
   vis('rotulos-distritos', capas.distritos && !ocultarNombres)
+  vis('barrios-linea-fondo', capas.barrios)
   vis('barrios-linea', capas.barrios)
   vis('barrios-relleno', capas.barrios)
   vis('rotulos-barrios', capas.barrios && !ocultarNombres)
