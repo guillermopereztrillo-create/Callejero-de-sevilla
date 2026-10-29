@@ -133,11 +133,7 @@ export function exportar() {
 export function importar(texto) {
   const j = JSON.parse(texto)
   if (j.app !== 'callejero-sevilla' || !j.datos) throw new Error('El archivo no es una copia del Callejero de Sevilla')
-  for (const [k, v] of Object.entries(j.datos)) {
-    try {
-      localStorage.setItem('callejero.' + k, v)
-    } catch {}
-  }
+  guardado.volcar(j.datos)
 }
 
 export function borrarTodo() {

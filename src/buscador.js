@@ -84,7 +84,7 @@ function pintar() {
     lista.hidden = !q
     return
   }
-  const ico = { calle: icono.calle(16), barrio: icono.barrio(16), distrito: icono.mapa(16), lugar: icono.pin(16), cruce: icono.cruce(16) }
+  const ico = { calle: icono.calle(16), barrio: icono.barrio(16), distrito: icono.mapa(16), lugar: icono.pin(16), cruce: icono.cruce(16), carretera: icono.ruta(16) }
   lista.innerHTML = resultados
     .map(
       (r, i) => `<li role="option" data-i="${i}" aria-selected="${i === sel}">
@@ -140,6 +140,10 @@ export function buscar(texto) {
     const s = puntuar(normalizar(d.nombre), q)
     if (s > 0) r.push({ s: s + 8, tipo: 'distrito', id: d.id, titulo: d.nombre, detalle: `Distrito · ${d.barrios.length} barrios` })
   }
+  D.carreteras.forEach((v, i) => {
+    const s = Math.max(puntuar(normalizar(v.ref), q) + 10, puntuar(normalizar(v.nombre), q))
+    if (s > 0) r.push({ s, tipo: 'carretera', id: i, titulo: `${v.ref} · ${v.nombre}`, detalle: `${v.tipo} · ${v.titular}` })
+  })
   for (const l of D.lugares) {
     const s = puntuar(normalizar(l.nombre), q)
     if (s > 0) r.push({ s: s - 2, tipo: 'lugar', id: l.id, titulo: l.nombre, detalle: `${l.tipo || l.cat} · ${D.calles[l.calle]?.n ?? ''}` })

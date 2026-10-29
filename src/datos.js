@@ -5,6 +5,7 @@ export const D = {
   distritos: [],
   barrios: [],
   lugares: [],
+  carreteras: [],
   oficiales: { examenes: [], preguntas: [] },
   fuentes: null,
   porClave: new Map(),
@@ -91,7 +92,7 @@ export function unirBbox(lista) {
 }
 
 export async function cargarDatos(progreso = () => {}) {
-  const archivos = ['calles.json', 'distritos.geojson', 'barrios.geojson', 'lugares.geojson', 'test-oficiales.json', 'fuentes.json']
+  const archivos = ['calles.json', 'distritos.geojson', 'barrios.geojson', 'lugares.geojson', 'test-oficiales.json', 'fuentes.json', 'carreteras.geojson']
   let hechos = 0
   const res = await Promise.all(
     archivos.map((a) =>
@@ -106,13 +107,18 @@ export async function cargarDatos(progreso = () => {}) {
         }),
     ),
   )
-  const [calles, distritos, barrios, lugares, oficiales, fuentes] = res
+  const [calles, distritos, barrios, lugares, oficiales, fuentes, carreteras] = res
   D.calles = calles
   D.distritos = distritos.features.map((f) => ({ ...f.properties, bbox: bbox(f.geometry) }))
   D.barrios = barrios.features.map((f) => ({ ...f.properties, bbox: bbox(f.geometry), geom: f.geometry }))
   D.lugares = lugares.features.map((f) => ({ ...f.properties, lngLat: f.geometry.coordinates }))
   D.oficiales = oficiales
   D.fuentes = fuentes
+  // primero las del Estado y la Junta, que son las que suelen salir en el examen
+  const orden = { estado: 0, junta: 1, diputacion: 2 }
+  D.carreteras = carreteras.features
+    .map((f, i) => ({ ...f.properties, i, bbox: bbox(f.geometry) }))
+    .sort((a, b) => orden[a.red] - orden[b.red] || a.ref.localeCompare(b.ref, 'es', { numeric: true }))
   for (const c of D.calles) {
     if (!D.porClave.has(c.k)) D.porClave.set(c.k, [])
     D.porClave.get(c.k).push(c.id)
@@ -157,8 +163,29 @@ export const CATEGORIAS = {
   policia: { nombre: 'Policía Local', color: '#3D5A80', letra: 'P' },
   monumento: { nombre: 'Monumentos (BIC)', color: '#8E5B3A', letra: 'M' },
   museo: { nombre: 'Museos', color: '#7A5BA0', letra: 'm' },
-  mercado: { nombre: 'Mercados', color: '#4D8B4A', letra: '€' },
   educacion: { nombre: 'Colegios e institutos', color: '#B9822F', letra: 'E' },
+  universidad: { nombre: 'Universidades', color: '#5C6BC0', letra: 'U' },
+  transporte: { nombre: 'Metro, tren y autobuses', color: '#1E88A8', letra: 'T' },
+  mercado: { nombre: 'Mercados', color: '#4D8B4A', letra: '€' },
   biblioteca: { nombre: 'Bibliotecas', color: '#2F7C9A', letra: 'L' },
   civico: { nombre: 'Centros cívicos', color: '#3F8E86', letra: 'C' },
+  cultura: { nombre: 'Espacios culturales', color: '#9C4F96', letra: 'A' },
+  social: { nombre: 'Servicios sociales', color: '#6D8B3A', letra: 'S' },
+  distrito: { nombre: 'Juntas de distrito', color: '#6B5B4B', letra: 'D' },
+  deporte: { nombre: 'Estadios', color: '#2E7D32', letra: 'e' },
+}
+
+let geometrias = null
+/** Geometría de cada calle (para situar la ficha y recorrer la calle en la vista de calle). */
+export async function geometriaCalle(id) {
+  if (!geometrias) {
+    geometrias = fetch(BASE + 'calles.geojson')
+      .then((r) => r.json())
+      .then((j) => {
+        const m = new Map()
+        for (const f of j.features) m.set(f.properties.id, f.geometry.type === 'LineString' ? [f.geometry.coordinates] : f.geometry.coordinates)
+        return m
+      })
+  }
+  return (await geometrias).get(id) || []
 }

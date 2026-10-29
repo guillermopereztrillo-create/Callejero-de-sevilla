@@ -139,6 +139,14 @@ def titulo(s):
     return t
 
 
+def matiz(hexa, f):
+    """Aclara (f > 0) u oscurece (f < 0) un color hexadecimal."""
+    r, g, b = (int(hexa[i:i + 2], 16) for i in (1, 3, 5))
+    m = 255 if f > 0 else 0
+    f = abs(f)
+    return '#%02X%02X%02X' % tuple(round(c + (m - c) * f) for c in (r, g, b))
+
+
 def normalizar(s):
     """Forma de comparación de nombres de calle: sin tildes, sin signos, sin artículos."""
     s = sin_tildes(s.lower())
@@ -472,54 +480,93 @@ def leer_pmtiles(ruta):
     return tesela
 
 
-def vias_osm():
+def teselas_osm(z, capa, bbox=BBOX):
+    """Recorre las teselas del mapa base (Protomaps) y devuelve (propiedades, geometría en lon/lat).
+    Las líneas se recortan al borde exacto de cada tesela para no duplicar tramos."""
     import mapbox_vector_tile
+    from shapely.geometry import box
     tesela = leer_pmtiles(mapa_base())
-    z = 15
     n = 2 ** z
     tx = lambda lon: int((lon + 180) / 360 * n)
     ty = lambda lat: int((1 - math.log(math.tan(math.radians(lat)) + 1 / math.cos(math.radians(lat))) / math.pi) / 2 * n)
-    sentido, peatonal, otras = [], [], []
-    for x in range(tx(BBOX[0]), tx(BBOX[2]) + 1):
-        for y in range(ty(BBOX[3]), ty(BBOX[1]) + 1):
+    for x in range(tx(bbox[0]), tx(bbox[2]) + 1):
+        for y in range(ty(bbox[3]), ty(bbox[1]) + 1):
             datos = tesela(z, x, y)
             if not datos:
                 continue
-            capa = mapbox_vector_tile.decode(datos).get('roads')
-            if not capa:
+            c = mapbox_vector_tile.decode(datos).get(capa)
+            if not c:
                 continue
-            ext = capa['extent']
-            for ft in capa['features']:
-                p = ft['properties']
-                kind = p.get('kind')
-                if kind not in ('highway', 'major_road', 'medium_road', 'minor_road', 'path', 'other'):
-                    continue
-                g = ft['geometry']
-                partes = [g['coordinates']] if g['type'] == 'LineString' else g['coordinates'] if g['type'] == 'MultiLineString' else []
-                for parte in partes:
-                    pts = []
-                    for px, py in parte:
-                        # el decodificador devuelve y hacia arriba
-                        lon = (x + px / ext) / n * 360 - 180
-                        yy = (y + 1 - py / ext) / n
-                        lat = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * yy))))
-                        pts.append(A_UTM(lon, lat))
-                    if len(pts) < 2:
+            ext = c['extent']
+            marco = box(0, 0, ext, ext)
+
+            def geo(px, py):
+                lon = (x + px / ext) / n * 360 - 180
+                yy = (y + 1 - py / ext) / n
+                return (lon, math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * yy)))))
+
+            for ft in c['features']:
+                g = shape(ft['geometry'])
+                if g.geom_type in ('LineString', 'MultiLineString'):
+                    g = g.intersection(marco)
+                    if g.is_empty:
                         continue
-                    ln = LineString(pts)
-                    det = p.get('kind_detail')
-                    if kind == 'path' and det in ('pedestrian', 'living_street', 'footway'):
-                        if det != 'footway':
-                            peatonal.append(ln)
-                    elif kind in ('highway', 'major_road', 'medium_road', 'minor_road'):
-                        if p.get('oneway') in ('yes', True, 1, '1'):
-                            sentido.append(ln)
-                        else:
-                            otras.append(ln)
-                    elif kind == 'other' and det == 'living_street':
-                        peatonal.append(ln)
+                yield ft['properties'], transform(lambda a, b, z=None: tuple(zip(*[geo(px, py) for px, py in zip(a, b)])) if hasattr(a, '__len__') else geo(a, b), g)
+
+
+def vias_osm():
+    sentido, peatonal, otras = [], [], []
+    for p, g in teselas_osm(15, 'roads'):
+        kind = p.get('kind')
+        if kind not in ('highway', 'major_road', 'medium_road', 'minor_road', 'path', 'other'):
+            continue
+        det = p.get('kind_detail')
+        for ln in lineas(g):
+            if len(ln.coords) < 2:
+                continue
+            ln = transform(A_UTM, ln)
+            if kind == 'path' and det in ('pedestrian', 'living_street'):
+                peatonal.append(ln)
+            elif kind == 'other' and det == 'living_street':
+                peatonal.append(ln)
+            elif kind in ('highway', 'major_road', 'medium_road', 'minor_road') or (kind == 'other' and det in ('service', None)):
+                if p.get('oneway') in ('yes', True, 1, '1'):
+                    sentido.append(ln)
+                elif kind != 'other':
+                    otras.append(ln)
     log(f'OSM: {len(sentido)} tramos de sentido único, {len(peatonal)} peatonales, {len(otras)} doble sentido')
     return sentido, peatonal, otras
+
+
+def unir_dirigidas(lineas_):
+    """Une tramos consecutivos (fin de uno = inicio del otro) sin cambiar su sentido."""
+    k = lambda c: (round(c[0] * 2), round(c[1] * 2))
+    por_inicio = defaultdict(list)
+    for i, ln in enumerate(lineas_):
+        por_inicio[k(ln.coords[0])].append(i)
+    entradas = Counter(k(ln.coords[-1]) for ln in lineas_)
+    usado = set()
+    out = []
+
+    def cadena(i):
+        coords = list(lineas_[i].coords)
+        usado.add(i)
+        while True:
+            sig = [j for j in por_inicio.get(k(coords[-1]), []) if j not in usado]
+            if len(sig) != 1 or entradas[k(coords[-1])] != 1:
+                break
+            usado.add(sig[0])
+            coords += list(lineas_[sig[0]].coords)[1:]
+        return LineString(coords)
+
+    # se empieza por los tramos a los que no llega ningún otro
+    for i, ln in enumerate(lineas_):
+        if i not in usado and entradas[k(ln.coords[0])] != 1:
+            out.append(cadena(i))
+    for i in range(len(lineas_)):
+        if i not in usado:
+            out.append(cadena(i))
+    return out
 
 
 # ----------------------------------------------------------------------------- red de tramos (rutas)
@@ -553,6 +600,28 @@ def red(cs, sentido, peatonal, otras):
                     mejor, md = o, dd
         return mejor
 
+    def signos_sentido(ln, d, ang, tol=13):
+        """Tramos OSM de sentido único paralelos cerca del punto: [(distancia, +1 mismo sentido / -1 contrario)]."""
+        pt = ln.interpolate(d)
+        p1 = ln.interpolate(max(0, d - 3))
+        p2 = ln.interpolate(min(ln.length, d + 3))
+        r = []
+        for i in arbol_s.query(pt.buffer(tol)):
+            o = sentido[int(i)]
+            dd = o.distance(pt)
+            if dd > tol:
+                continue
+            q = o.project(pt)
+            if dif_angulo(rumbo_local(o, q), ang) >= 28:
+                continue
+            q1 = o.interpolate(max(0, q - 3))
+            q2 = o.interpolate(min(o.length, q + 3))
+            dot = (p2.x - p1.x) * (q2.x - q1.x) + (p2.y - p1.y) * (q2.y - q1.y)
+            qp = o.interpolate(q)
+            lado = (p2.x - p1.x) * (qp.y - pt.y) - (p2.y - p1.y) * (qp.x - pt.x)
+            r.append((dd, 1 if dot > 0 else -1, 1 if lado > 0 else -1))
+        return sorted(r)
+
     aristas = []
     for f in tramos['features']:
         if not f['geometry']:
@@ -579,16 +648,15 @@ def red(cs, sentido, peatonal, otras):
             for frac in (0.25, 0.5, 0.75):
                 d = ln.length * frac
                 ang = rumbo_local(ln, d)
-                o = candidato(arbol_s, sentido, ln, d, ang)
-                if o is not None:
-                    pt = ln.interpolate(d)
-                    p1 = ln.interpolate(max(0, d - 3))
-                    p2 = ln.interpolate(min(ln.length, d + 3))
-                    q = o.project(pt)
-                    q1 = o.interpolate(max(0, q - 3))
-                    q2 = o.interpolate(min(o.length, q + 3))
-                    dot = (p2.x - p1.x) * (q2.x - q1.x) + (p2.y - p1.y) * (q2.y - q1.y)
-                    votos += 1 if dot > 0 else -1
+                cercanos = signos_sentido(ln, d, ang)
+                if cercanos and cercanos[0][0] <= 3.5:
+                    # la vía OSM coincide con la del callejero: una sola calzada
+                    votos += cercanos[0][1]
+                elif len({c[1] for c in cercanos}) == 2 and len({c[2] for c in cercanos}) == 2:
+                    # dos calzadas de sentido contrario, una a cada lado: la vía es de doble sentido
+                    hay_doble += 1
+                elif cercanos and cercanos[0][0] <= 7:
+                    votos += cercanos[0][1]
                 elif candidato(arbol_o, otras, ln, d, ang) is not None:
                     hay_doble += 1
                 if candidato(arbol_p, peatonal, ln, d, ang) is not None:
@@ -614,6 +682,90 @@ def red(cs, sentido, peatonal, otras):
         ls = sum(e['l'] for e in es if e['s'])
         c['sentido'] = 0 if ls < 0.3 * total else (2 if ls > 0.9 * total else 1)
     return nodos, aristas
+
+
+# ----------------------------------------------------------------------------- carreteras de acceso
+
+CARRETERAS = {
+    # ref: (nombre, itinerario, ruta europea) — solo las principales; el resto se describe por su titularidad
+    'A-4': ('Autovía del Sur', 'Madrid · Córdoba · Sevilla · Jerez · Cádiz', 'E-5'),
+    'A-49': ('Autovía del Quinto Centenario', 'Sevilla · Huelva · Portugal', 'E-1'),
+    'A-66': ('Autovía Ruta de la Plata', 'Sevilla · Mérida · Salamanca · Gijón', 'E-803'),
+    'A-92': ('Autovía de Andalucía', 'Sevilla · Antequera · Granada · Almería', None),
+    'SE-30': ('Ronda de circunvalación SE-30', 'Anillo de circunvalación de Sevilla', None),
+    'SE-40': ('Autovía de circunvalación SE-40', 'Segunda circunvalación del área metropolitana', None),
+    'SE-20': ('Ronda Supernorte SE-20', 'Ronda urbana del norte de Sevilla', None),
+    'A-376': ('Autovía A-376', 'Sevilla · Utrera', None),
+    'N-630': ('Carretera nacional N-630, Ruta de la Plata', 'Sevilla · Mérida · Gijón', None),
+    'N-4': ('Carretera nacional N-IV', 'Madrid · Sevilla · Cádiz', None),
+}
+
+
+def titularidad(ref):
+    if ref == 'A-92' or re.fullmatch(r'A-[34]\d\d', ref):
+        return 'Junta de Andalucía · red autonómica'
+    if re.fullmatch(r'A-\d{1,2}', ref) or ref.startswith('N-') or re.fullmatch(r'SE-\d{2}', ref):
+        return 'Estado · Red de Carreteras del Estado'
+    if re.fullmatch(r'A-8\d{3}', ref):
+        return 'Junta de Andalucía · red complementaria metropolitana'
+    if re.fullmatch(r'SE-\d{3,4}', ref):
+        return 'Diputación de Sevilla · red provincial'
+    return 'Sin datos de titularidad'
+
+
+def carreteras(union_geo, barrios, cs):
+    union = transform(A_UTM, union_geo)
+    cerca = union.buffer(2500)
+    piezas = defaultdict(list)
+    tipos = defaultdict(Counter)
+    nombres_osm = defaultdict(Counter)
+    for p, g in teselas_osm(13, 'roads'):
+        if p.get('kind') not in ('highway', 'major_road', 'medium_road') or not p.get('ref'):
+            continue
+        for ref in re.findall(r'\b(?:A|N|SE)-\d+', p['ref']):
+            for ln in lineas(g):
+                lu = transform(A_UTM, ln)
+                if lu.intersects(cerca):
+                    piezas[ref].append(lu)
+                    tipos[ref][p.get('kind')] += 1
+                    if p.get('name'):
+                        nombres_osm[ref][p['name']] += 1
+    borde = union.boundary
+    barrios_utm = [(b['nombre'], transform(A_UTM, b['geom'])) for b in barrios]
+    vias_cdau = [c for c in cs if c['tipo'] in ('AUTOVIA', 'CARRETERA', 'VIA', 'RONDA', 'ENLACE', 'AUTOPISTA', 'PUENTE', 'AVENIDA')]
+    out, entradas = [], []
+    for ref, ls in sorted(piezas.items(), key=lambda kv: (titularidad(kv[0]), kv[0])):
+        u = unary_union(ls)
+        g = (linemerge(u) if u.geom_type == 'MultiLineString' else u).simplify(3)
+        dentro = g.intersection(union).length
+        if g.length < 300 or (g.distance(union) > 150 and ref not in CARRETERAS):
+            continue
+        nombre, itinerario, europea = CARRETERAS.get(ref, (None, None, None))
+        patron = re.compile(r'\b' + re.escape(ref).replace('\\-', '[- ]?') + r'\b', re.I)
+        oficiales = list(dict.fromkeys(c['nombre'] for c in vias_cdau if patron.search(c['nombre'])))[:3]
+        tipo = 'Autovía' if tipos[ref].most_common(1)[0][0] == 'highway' else 'Carretera'
+        pts = []
+        cruce = g.intersection(borde)
+        for pt in (getattr(cruce, 'geoms', [cruce]) if not cruce.is_empty else []):
+            if pt.geom_type != 'Point' or any(pt.distance(q) < 400 for q in pts):
+                continue
+            pts.append(pt)
+        lugares_entrada = []
+        for pt in pts:
+            barrio = min(barrios_utm, key=lambda b: b[1].distance(pt))[0]
+            lugares_entrada.append(barrio)
+            lon, lat = A_GEO(pt.x, pt.y)
+            entradas.append({'type': 'Feature', 'properties': {'ref': ref, 'barrio': barrio, 'destino': (itinerario or nombre or '').split(' · ')[-1] if itinerario else ''},
+                             'geometry': {'type': 'Point', 'coordinates': [round(lon, 5), round(lat, 5)]}})
+        props = {
+            'ref': ref, 'tipo': tipo, 'nombre': nombre or (nombres_osm[ref].most_common(1)[0][0] if nombres_osm[ref] else f'{tipo} {ref}'),
+            'itinerario': itinerario, 'europea': europea, 'titular': titularidad(ref),
+            'oficial': oficiales, 'km_sevilla': round(dentro / 1000, 1), 'entradas': sorted(set(lugares_entrada)),
+            'red': 'estado' if titularidad(ref).startswith('Estado') else 'junta' if 'Junta' in titularidad(ref) else 'diputacion',
+        }
+        out.append({'type': 'Feature', 'properties': props, 'geometry': redondear(transform(A_GEO, g))})
+    log('carreteras de acceso:', len(out), [f['properties']['ref'] for f in out])
+    return {'type': 'FeatureCollection', 'features': out}, {'type': 'FeatureCollection', 'features': entradas}
 
 
 # ----------------------------------------------------------------------------- manzanas (Catastro)
@@ -651,8 +803,9 @@ def manzanas(termino):
 
 # ----------------------------------------------------------------------------- lugares de interés
 
-def lugares(cs):
+def lugares(cs, union_geo):
     arbol = STRtree([c['utm'] for c in cs])
+    zona = union_geo.buffer(0.0006)
 
     def calle_cercana(lon, lat):
         p = Point(A_UTM(lon, lat))
@@ -674,7 +827,10 @@ def lugares(cs):
         pt = punto(f)
         if not pt or not nombre:
             return
-        if not (BBOX[0] < pt.x < BBOX[2] and BBOX[1] < pt.y < BBOX[3]):
+        if not zona.contains(pt):
+            return
+        if any(o['properties']['cat'] == cat and o['properties']['nombre'] == nombre.strip() and
+               abs(o['geometry']['coordinates'][0] - pt.x) + abs(o['geometry']['coordinates'][1] - pt.y) < 0.001 for o in out):
             return
         props = {'id': len(out), 'cat': cat, 'nombre': nombre.strip(), 'calle': calle_cercana(pt.x, pt.y)}
         props.update({k: v for k, v in (extra or {}).items() if v})
@@ -716,6 +872,23 @@ def lugares(cs):
     for f in ide_sevilla('Centros_Civicos_2016')['features']:
         p = f['properties']
         anadir('civico', p.get('Nombre'), f, {'direccion': p.get('Dirección')})
+    for f in ide_sevilla('APP_Sede_Distritos')['features']:
+        p = f['properties']
+        anadir('distrito', f"Junta Municipal del Distrito {p.get('NOMBRE')}", f, {'direccion': p.get('CALLE')})
+    for f in ide_sevilla('APP_Centros_de_Servicios_Sociales')['features']:
+        p = f['properties']
+        anadir('social', p.get('Nombre'), f, {'tipo': p.get('Tipo')})
+    for f in ide_sevilla('APP_Espacios_Icas')['features']:
+        p = f['properties']
+        anadir('cultura', p.get('Nombre'), f, {'tipo': 'Espacio cultural (ICAS)'})
+    # transporte, universidades y estadios de OpenStreetMap
+    osm = {'station': ('transporte', 'Estación de metro o tren'), 'bus_station': ('transporte', 'Estación de autobuses'),
+           'university': ('universidad', 'Universidad'), 'college': ('universidad', 'Centro de estudios'),
+           'stadium': ('deporte', 'Estadio')}
+    for p, g in teselas_osm(15, 'pois'):
+        if p.get('kind') in osm and p.get('name') and g.geom_type == 'Point' and len(p['name']) > 3:
+            cat, tipo = osm[p['kind']]
+            anadir(cat, p['name'], {'geometry': mapping(g)}, {'tipo': tipo, 'fuente': 'OpenStreetMap'})
     log('lugares de interés:', len(out), Counter(f['properties']['cat'] for f in out))
     return {'type': 'FeatureCollection', 'features': out}
 
@@ -799,6 +972,12 @@ def main():
     relaciones(cs)
     sentido, peatonal, otras = vias_osm()
     nodos, aristas = red(cs, sentido, peatonal, otras)
+    union = unary_union([d['geom'] for d in distritos]).buffer(0)
+
+    # colores: cada barrio, un tono del color de su distrito
+    for d in distritos:
+        for k, bid in enumerate(d['barrios']):
+            barrios[bid]['color'] = matiz(d['color'], [0, 0.32, -0.22, 0.18, -0.36, 0.45, -0.1][k % 7])
 
     # zonas
     guardar('distritos.geojson', {'type': 'FeatureCollection', 'features': [
@@ -809,7 +988,7 @@ def main():
          'geometry': redondear(d['geom'].simplify(0.00002))} for d in distritos]})
     guardar('barrios.geojson', {'type': 'FeatureCollection', 'features': [
         {'type': 'Feature', 'id': b['id'], 'properties': {
-            'id': b['id'], 'nombre': b['nombre'], 'distrito': next(d['id'] for d in distritos if d['nombre'] == b['distrito']),
+            'id': b['id'], 'nombre': b['nombre'], 'distrito': next(d['id'] for d in distritos if d['nombre'] == b['distrito']), 'color': b['color'],
             'calles': sum(1 for c in cs if b['id'] in c['barrios'] and not c['zona'])},
          'geometry': redondear(b['geom'].simplify(0.00002))} for b in barrios]})
     rot = []
@@ -819,9 +998,12 @@ def main():
                     'geometry': redondear(p, 5)})
     for b in barrios:
         p = b['geom'].representative_point() if not b['geom'].centroid.within(b['geom']) else b['geom'].centroid
-        rot.append({'type': 'Feature', 'properties': {'nombre': b['nombre'], 'nivel': 'barrio'}, 'geometry': redondear(p, 5)})
+        rot.append({'type': 'Feature', 'properties': {'nombre': b['nombre'], 'nivel': 'barrio', 'color': matiz(b['color'], -0.35)}, 'geometry': redondear(p, 5)})
     guardar('rotulos.geojson', {'type': 'FeatureCollection', 'features': rot})
-    guardar('termino.geojson', {'type': 'Feature', 'properties': {}, 'geometry': redondear(termino.simplify(0.00002))})
+    guardar('termino.geojson', {'type': 'Feature', 'properties': {}, 'geometry': redondear(union.simplify(0.00002))})
+    # máscara: todo lo que queda fuera de los 11 distritos
+    fuera = Polygon([(-7.5, 36.5), (-4.5, 36.5), (-4.5, 38.5), (-7.5, 38.5)]).difference(union.buffer(0.00005))
+    guardar('fuera.geojson', {'type': 'Feature', 'properties': {}, 'geometry': redondear(fuera.simplify(0.00002))})
 
     # calles
     guardar('calles.geojson', {'type': 'FeatureCollection', 'features': [
@@ -839,11 +1021,15 @@ def main():
     } for c in cs])
 
     # sentido y peatonales para el mapa
+    # flechas: directamente las vías de sentido único de OpenStreetMap, recortadas a los distritos
+    union_utm = transform(A_UTM, union).buffer(10)
     flechas, peat = [], []
+    for ln in unir_dirigidas(sentido):
+        g = ln.intersection(union_utm)
+        for parte in lineas(g):
+            if parte.length >= 12:
+                flechas.append({'type': 'Feature', 'properties': {}, 'geometry': redondear(transform(A_GEO, parte), 6)})
     for e in aristas:
-        if e['s']:
-            g = e['g'] if e['s'] > 0 else LineString(list(e['g'].coords)[::-1])
-            flechas.append({'type': 'Feature', 'properties': {}, 'geometry': redondear(transform(A_GEO, g))})
         if e['p']:
             peat.append({'type': 'Feature', 'properties': {'c': e['c']}, 'geometry': redondear(transform(A_GEO, e['g']))})
     guardar('sentidos.geojson', {'type': 'FeatureCollection', 'features': flechas})
@@ -855,7 +1041,18 @@ def main():
         [e['a'], e['b'], round(e['l'], 1), e['c'], e['s'], e['p'],
          [[round(v, 5) for v in A_GEO(x, y)] for x, y in list(e['g'].coords)[1:-1]]] for e in aristas]})
 
-    guardar('lugares.geojson', lugares(cs))
+    guardar('lugares.geojson', lugares(cs, union))
+    vias, entradas = carreteras(union, barrios, cs)
+    guardar('carreteras.geojson', vias)
+    guardar('entradas.geojson', entradas)
+    bic = []
+    for f in ide_sevilla('BIC_Sevilla')['features']:
+        if f.get('geometry') and f['properties'].get('DENOMINACI'):
+            g = shape(f['geometry']).buffer(0).simplify(0.000005)
+            if union.buffer(0.0006).contains(g.representative_point()):
+                bic.append({'type': 'Feature', 'properties': {'nombre': f['properties']['DENOMINACI'].strip(), 'tipo': (f['properties'].get('TJ_R_E') or '').strip()},
+                            'geometry': redondear(g, 6)})
+    guardar('bic.geojson', {'type': 'FeatureCollection', 'features': bic})
     guardar('manzanas.geojson', manzanas(termino))
     guardar('test-oficiales.json', examenes())
     destino_base = os.path.join(RAIZ, 'public', 'datos', 'base-sevilla.pmtiles')

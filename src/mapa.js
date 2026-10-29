@@ -20,13 +20,14 @@ export const capas = Object.assign(
     distritos: false,
     barrios: false,
     peatonales: true,
-    sentido: false,
+    sentido: true,
     satelite: false,
     relieve: false,
     poligonos: false,
-    pdi: [],
+    carreteras: true,
+    pdi: ['bomberos', 'hospital', 'monumento', 'educacion', 'transporte'],
   },
-  guardado.leer('capas', {}),
+  guardado.leer('capas2', {}),
 )
 
 /** Mientras se juega, los nombres no se muestran aunque estén activados. */
@@ -36,20 +37,34 @@ export function temaActual() {
   return document.documentElement.dataset.tema === 'oscuro' ? 'oscuro' : 'claro'
 }
 
+/** Flecha (→) para el sentido de circulación: un trazo con su punta, apuntando a lo largo de la calle. */
 function imagenFlecha() {
-  const s = 32
+  const s = 48
   const c = document.createElement('canvas')
   c.width = c.height = s
   const g = c.getContext('2d')
   g.fillStyle = '#000'
+  g.strokeStyle = '#000'
+  g.lineWidth = 5
+  g.lineCap = 'round'
   g.beginPath()
-  g.moveTo(8, 9)
-  g.lineTo(25, 16)
-  g.lineTo(8, 23)
-  g.lineTo(12, 16)
+  g.moveTo(8, 24)
+  g.lineTo(30, 24)
+  g.stroke()
+  g.beginPath()
+  g.moveTo(42, 24)
+  g.lineTo(26, 13)
+  g.lineTo(26, 35)
   g.closePath()
   g.fill()
   return { width: s, height: s, data: new Uint8Array(g.getImageData(0, 0, s, s).data.buffer) }
+}
+
+function limites(geo) {
+  let b = [180, 90, -180, -90]
+  const r = (c) => (typeof c[0] === 'number' ? (b = [Math.min(b[0], c[0]), Math.min(b[1], c[1]), Math.max(b[2], c[0]), Math.max(b[3], c[1])]) : c.forEach(r))
+  r(geo.geometry.coordinates)
+  return b
 }
 
 export async function crearMapa(contenedor) {
@@ -59,16 +74,18 @@ export async function crearMapa(contenedor) {
     .then((r) => r.json())
     .catch(() => null)
 
+  // el plano no deja salir de Sevilla (los 11 distritos, con algo de margen)
+  const b = termino ? limites(termino) : [-6.04, 37.31, -5.86, 37.45]
   mapa = new maplibregl.Map({
     container: contenedor,
     style: construirEstilo(temaActual(), termino),
     center: CENTRO,
     zoom: 12.2,
-    minZoom: 10,
+    minZoom: 11,
     maxZoom: 19.5,
     maxBounds: [
-      [-6.35, 37.18],
-      [-5.6, 37.6],
+      [b[0] - 0.07, b[1] - 0.045],
+      [b[2] + 0.07, b[3] + 0.045],
     ],
     attributionControl: false,
     dragRotate: true,
@@ -123,7 +140,7 @@ const vis = (id, v) => mapa.getLayer(id) && mapa.setLayoutProperty(id, 'visibili
 
 export function aplicarCapas() {
   if (!mapa) return
-  guardado.escribir('capas', capas)
+  guardado.escribir('capas2', capas)
   const sat = capas.satelite
   vis('satelite', sat)
   for (const id of ['tierra', 'cubierta', 'usos-verde', 'usos-industrial', 'agua', 'agua-lineas']) vis(id, !sat)
@@ -137,16 +154,18 @@ export function aplicarCapas() {
   const etiquetasBase = !capas.mudo && !ocultarNombres
   vis('base-lugares', etiquetasBase)
   vis('agua-nombres', etiquetasBase)
-  vis('base-poblaciones', !ocultarNombres)
 
   vis('distritos-linea', capas.distritos)
   vis('distritos-relleno', capas.distritos)
   vis('rotulos-distritos', capas.distritos && !ocultarNombres)
   vis('barrios-linea', capas.barrios)
+  vis('barrios-relleno', capas.barrios)
   vis('rotulos-barrios', capas.barrios && !ocultarNombres)
   vis('peatonales', capas.peatonales)
   vis('sentidos', capas.sentido)
   vis('poligonos', capas.poligonos)
+  for (const id of ['carreteras-acceso-borde', 'carreteras-acceso', 'carreteras-ref']) vis(id, capas.carreteras)
+  vis('carreteras-entradas', capas.carreteras && !ocultarNombres)
 
   vis('sombreado', capas.relieve)
   if (capas.relieve) {
@@ -157,9 +176,13 @@ export function aplicarCapas() {
   }
   const cats = capas.pdi || []
   const filtro = ['in', ['get', 'cat'], ['literal', cats]]
-  mapa.setFilter('lugares', filtro)
+  // los colegios son muchos: aparecen al acercarse
+  const filtroZoom = ['all', filtro, ['any', ['!=', ['get', 'cat'], 'educacion'], ['>=', ['zoom'], 14]]]
+  mapa.setFilter('lugares', filtroZoom)
+  mapa.setFilter('lugares-letra', filtroZoom)
   mapa.setFilter('lugares-nombres', filtro)
   vis('lugares-nombres', !ocultarNombres)
+  vis('bic', cats.includes('monumento'))
 }
 
 export function modoJuego(activo) {

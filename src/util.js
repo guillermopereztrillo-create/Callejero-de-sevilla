@@ -14,36 +14,66 @@ export function h(html) {
   return t.content.firstElementChild
 }
 
-// Guardado local (todo el progreso vive en este navegador)
-const PREFIJO = 'callejero.'
+// Guardado local. Cada cuenta tiene su propio espacio («callejero.u.<id>.»); sin cuenta se usa «callejero.».
+// Las claves globales (lista de cuentas, cuenta activa, tema) no dependen de la cuenta.
+const RAIZ = 'callejero.'
+const GLOBALES = new Set(['cuentas', 'cuentaActiva', 'tema', 'tutorialVisto'])
+const cuentaActiva = (() => {
+  try {
+    return JSON.parse(localStorage.getItem(RAIZ + 'cuentaActiva') || 'null')
+  } catch {
+    return null
+  }
+})()
+const PREFIJO = cuentaActiva ? `${RAIZ}u.${cuentaActiva}.` : RAIZ
+const clave = (k) => (GLOBALES.has(k) ? RAIZ : PREFIJO) + k
+
 export const guardado = {
-  leer(clave, defecto) {
+  cuenta: cuentaActiva,
+  /** Se llama tras cada escritura (la usa la sincronización con la nube). */
+  alEscribir: null,
+  leer(k, defecto) {
     try {
-      const v = localStorage.getItem(PREFIJO + clave)
+      const v = localStorage.getItem(clave(k))
       return v == null ? defecto : JSON.parse(v)
     } catch {
       return defecto
     }
   },
-  escribir(clave, valor) {
+  escribir(k, valor) {
     try {
-      localStorage.setItem(PREFIJO + clave, JSON.stringify(valor))
+      localStorage.setItem(clave(k), JSON.stringify(valor))
+    } catch {}
+    if (!GLOBALES.has(k)) guardado.alEscribir?.(k)
+  },
+  borrar(k) {
+    try {
+      localStorage.removeItem(clave(k))
     } catch {}
   },
-  borrar(clave) {
-    try {
-      localStorage.removeItem(PREFIJO + clave)
-    } catch {}
-  },
-  todo() {
+  /** Todo lo guardado por la cuenta actual (sin las claves globales ni las de otras cuentas). */
+  todo(prefijo = PREFIJO) {
     const r = {}
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i)
-        if (k.startsWith(PREFIJO)) r[k.slice(PREFIJO.length)] = localStorage.getItem(k)
+        if (!k.startsWith(prefijo)) continue
+        const corta = k.slice(prefijo.length)
+        if (prefijo === RAIZ && (corta.startsWith('u.') || GLOBALES.has(corta))) continue
+        r[corta] = localStorage.getItem(k)
       }
     } catch {}
     return r
+  },
+  /** Escribe en bloque los datos de una cuenta (al iniciar sesión o importar). */
+  volcar(datos, cuenta = cuentaActiva) {
+    const pre = cuenta ? `${RAIZ}u.${cuenta}.` : RAIZ
+    for (const [k, v] of Object.entries(datos || {})) {
+      if (GLOBALES.has(k)) continue
+      try {
+        localStorage.setItem(pre + k, typeof v === 'string' ? v : JSON.stringify(v))
+      } catch {}
+    }
   },
 }
 

@@ -1,7 +1,7 @@
 // Estilo del plano: mapa base de Protomaps (OpenStreetMap) + callejero CDAU + manzanas del Catastro
 // + zonas del Ayuntamiento + ortofoto PNOA del IGN.
 
-import { BASE } from './datos.js'
+import { BASE, CATEGORIAS } from './datos.js'
 
 export const PALETAS = {
   claro: {
@@ -26,8 +26,10 @@ export const PALETAS = {
     texto: '#5A4A3C',
     textoSuave: '#8A7A6B',
     halo: '#FAF6EF',
-    peatonal: '#B98E5E',
-    flecha: '#7B6450',
+    peatonal: '#EF86B5',
+    flecha: '#7A3B22',
+    fuera: '#EFE8DC',
+    limite: '#A4532F',
     objetivo: '#C0502B',
     pista: '#3D7CC9',
     correcta: '#2E9B57',
@@ -56,8 +58,10 @@ export const PALETAS = {
     texto: '#D9CABA',
     textoSuave: '#A89887',
     halo: '#1C1815',
-    peatonal: '#C79D6C',
-    flecha: '#D9CABA',
+    peatonal: '#F27AB4',
+    flecha: '#F3EAE0',
+    fuera: '#161311',
+    limite: '#D97D4F',
     objetivo: '#F07A4A',
     pista: '#6AA6F0',
     correcta: '#5CCB84',
@@ -82,7 +86,6 @@ const anchoBorde = (principal) =>
 /** Construye el estilo completo. `termino` es la geometría del término municipal (para no duplicar calles). */
 export function construirEstilo(tema = 'claro', termino = null) {
   const P = PALETAS[tema] || PALETAS.claro
-  const fuera = termino ? ['!', ['within', termino]] : true
   return {
     version: 8,
     glyphs: 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
@@ -128,6 +131,16 @@ export function construirEstilo(tema = 'claro', termino = null) {
       peatonales: { type: 'geojson', data: BASE + 'peatonales.geojson' },
       sentidos: { type: 'geojson', data: BASE + 'sentidos.geojson' },
       lugares: { type: 'geojson', data: BASE + 'lugares.geojson', promoteId: 'id' },
+      bic: { type: 'geojson', data: BASE + 'bic.geojson' },
+      fuera: { type: 'geojson', data: BASE + 'fuera.geojson' },
+      limite: { type: 'geojson', data: BASE + 'termino.geojson' },
+      carreteras: {
+        type: 'geojson',
+        data: BASE + 'carreteras.geojson',
+        generateId: true,
+        attribution: 'Carreteras: OpenStreetMap y CDAU',
+      },
+      entradas: { type: 'geojson', data: BASE + 'entradas.geojson' },
       ruta: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       trazado: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       anotaciones: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
@@ -206,30 +219,22 @@ export function construirEstilo(tema = 'claro', termino = null) {
           'fill-extrusion-opacity': 0.85,
         },
       },
-      { id: 'distritos-relleno', type: 'fill', source: 'distritos', layout: { visibility: 'none' }, paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.07 } },
+      { id: 'distritos-relleno', type: 'fill', source: 'distritos', layout: { visibility: 'none' }, paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.2 } },
+      { id: 'barrios-relleno', type: 'fill', source: 'barrios', layout: { visibility: 'none' }, paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.24 } },
+      {
+        id: 'bic',
+        type: 'fill',
+        source: 'bic',
+        minzoom: 14,
+        layout: { visibility: 'none' },
+        paint: { 'fill-color': CATEGORIAS.monumento.color, 'fill-opacity': 0.28, 'fill-outline-color': CATEGORIAS.monumento.color },
+      },
       {
         id: 'barrio-sel-relleno',
         type: 'fill',
         source: 'barrios',
         filter: ['==', ['get', 'id'], -1],
         paint: { 'fill-color': P.objetivo, 'fill-opacity': 0.08 },
-      },
-      // vías fuera del término municipal (OSM)
-      {
-        id: 'vias-fuera-borde',
-        type: 'line',
-        source: 'base',
-        'source-layer': 'roads',
-        filter: ['all', ['in', ['get', 'kind'], ['literal', ['minor_road', 'medium_road']]], fuera],
-        paint: { 'line-color': P.calleBorde, 'line-width': z([12, 0.6, 16, 6]) },
-      },
-      {
-        id: 'vias-fuera',
-        type: 'line',
-        source: 'base',
-        'source-layer': 'roads',
-        filter: ['all', ['in', ['get', 'kind'], ['literal', ['minor_road', 'medium_road']]], fuera],
-        paint: { 'line-color': P.exterior, 'line-width': z([12, 0.3, 16, 4.5]) },
       },
       {
         id: 'tren',
@@ -239,23 +244,14 @@ export function construirEstilo(tema = 'claro', termino = null) {
         filter: ['==', ['get', 'kind'], 'rail'],
         paint: { 'line-color': P.tren, 'line-width': z([10, 0.6, 16, 2]), 'line-dasharray': [3, 2] },
       },
+      // todo lo que queda fuera de los 11 distritos se tapa
+      { id: 'fuera', type: 'fill', source: 'fuera', paint: { 'fill-color': P.fuera, 'fill-opacity': 1 } },
       {
-        id: 'carreteras-borde',
+        id: 'limite',
         type: 'line',
-        source: 'base',
-        'source-layer': 'roads',
-        filter: ['all', ['in', ['get', 'kind'], ['literal', ['highway', 'major_road']]], fuera],
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': ['match', ['get', 'kind'], 'highway', P.autoviaBorde, P.principalBorde], 'line-width': z([8, 1, 12, 3, 16, 14]) },
-      },
-      {
-        id: 'carreteras',
-        type: 'line',
-        source: 'base',
-        'source-layer': 'roads',
-        filter: ['all', ['in', ['get', 'kind'], ['literal', ['highway', 'major_road']]], fuera],
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': ['match', ['get', 'kind'], 'highway', P.autovia, P.principal], 'line-width': z([8, 0.6, 12, 2, 16, 11]) },
+        source: 'limite',
+        layout: { 'line-join': 'round' },
+        paint: { 'line-color': P.limite, 'line-width': z([10, 1.2, 16, 3]), 'line-opacity': 0.55, 'line-dasharray': [4, 2] },
       },
       // callejero oficial (CDAU)
       {
@@ -300,25 +296,26 @@ export function construirEstilo(tema = 'claro', termino = null) {
         id: 'peatonales',
         type: 'line',
         source: 'peatonales',
-        minzoom: 13,
-        layout: { 'line-cap': 'round' },
-        paint: { 'line-color': P.peatonal, 'line-opacity': 0.8, 'line-width': z([13, 0.6, 16, 1.8, 18, 3.2]), 'line-dasharray': [0.1, 2.2] },
+        minzoom: 12,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': P.peatonal, 'line-opacity': 0.85, 'line-width': z([12, 0.5, 14, 1.3, 16, 3.5, 18, 8, 20, 22]) },
       },
       {
         id: 'sentidos',
         type: 'symbol',
         source: 'sentidos',
-        minzoom: 15,
+        minzoom: 14,
         layout: {
           visibility: 'none',
           'symbol-placement': 'line',
-          'symbol-spacing': 70,
+          'symbol-spacing': ['interpolate', ['linear'], ['zoom'], 14, 45, 16, 60, 18, 90],
           'icon-image': 'flecha',
-          'icon-size': z([15, 0.55, 18, 1]),
+          'icon-size': ['interpolate', ['linear'], ['zoom'], 14, 0.3, 16, 0.42, 18, 0.62],
           'icon-rotation-alignment': 'map',
           'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
         },
-        paint: { 'icon-color': P.flecha, 'icon-opacity': 0.85 },
+        paint: { 'icon-color': P.flecha, 'icon-opacity': 0.95 },
       },
       // resaltados (filtros que cambia la aplicación)
       ...['pista', 'error', 'correcta', 'objetivo'].map((rol) => ({
@@ -370,14 +367,14 @@ export function construirEstilo(tema = 'claro', termino = null) {
         type: 'line',
         source: 'distritos',
         layout: { visibility: 'none', 'line-join': 'round' },
-        paint: { 'line-color': ['get', 'color'], 'line-width': z([10, 1.2, 16, 3]), 'line-opacity': 0.75 },
+        paint: { 'line-color': ['get', 'color'], 'line-width': z([10, 1.6, 16, 3.5]), 'line-opacity': 0.9 },
       },
       {
         id: 'barrios-linea',
         type: 'line',
         source: 'barrios',
         layout: { visibility: 'none', 'line-join': 'round' },
-        paint: { 'line-color': '#7A6A9A', 'line-width': z([11, 0.6, 16, 1.8]), 'line-dasharray': [3, 2], 'line-opacity': 0.8 },
+        paint: { 'line-color': ['get', 'color'], 'line-width': z([11, 0.8, 16, 2]), 'line-opacity': 0.95 },
       },
       {
         id: 'barrio-sel-linea',
@@ -394,11 +391,78 @@ export function construirEstilo(tema = 'claro', termino = null) {
         minzoom: 11,
         filter: ['in', ['get', 'cat'], ['literal', []]],
         paint: {
-          'circle-radius': z([11, 3, 15, 6, 18, 9]),
-          'circle-color': ['match', ['get', 'cat'], 'bomberos', '#C0392B', 'hospital', '#D2453B', 'salud', '#E07A5F', 'policia', '#3D5A80', 'monumento', '#8E5B3A', 'museo', '#7A5BA0', 'mercado', '#4D8B4A', 'educacion', '#B9822F', 'biblioteca', '#2F7C9A', 'civico', '#3F8E86', '#777'],
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 3.5, 14, 7, 17, 11],
+          'circle-color': ['match', ['get', 'cat'], ...Object.entries(CATEGORIAS).flatMap(([k, c]) => [k, c.color]), '#777'],
           'circle-stroke-color': '#fff',
           'circle-stroke-width': 1.5,
         },
+      },
+      {
+        id: 'lugares-letra',
+        type: 'symbol',
+        source: 'lugares',
+        minzoom: 13,
+        filter: ['in', ['get', 'cat'], ['literal', []]],
+        layout: {
+          'text-field': ['match', ['get', 'cat'], ...Object.entries(CATEGORIAS).flatMap(([k, c]) => [k, c.letra]), ''],
+          'text-font': FUENTE_M,
+          'text-size': ['interpolate', ['linear'], ['zoom'], 13, 8, 17, 12],
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        },
+        paint: { 'text-color': '#ffffff' },
+      },
+      // carreteras de acceso: por encima de la máscara para ver por dónde llegan
+      {
+        id: 'carreteras-acceso-borde',
+        type: 'line',
+        source: 'carreteras',
+        layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#ffffff', 'line-width': z([10, 4, 13, 6, 16, 14]) },
+      },
+      {
+        id: 'carreteras-acceso',
+        type: 'line',
+        source: 'carreteras',
+        layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': ['match', ['get', 'red'], 'estado', '#D23B2A', 'junta', '#2E8B57', '#E0A21B'],
+          'line-width': ['case', ['boolean', ['feature-state', 'sel'], false], 9, ['==', ['get', 'tipo'], 'Autovía'], 4.5, 3],
+        },
+      },
+      {
+        id: 'carreteras-ref',
+        type: 'symbol',
+        source: 'carreteras',
+        layout: {
+          visibility: 'none',
+          'symbol-placement': 'line',
+          'symbol-spacing': 320,
+          'text-field': ['get', 'ref'],
+          'text-font': FUENTE_M,
+          'text-size': 11.5,
+          'text-letter-spacing': 0.04,
+          'text-rotation-alignment': 'viewport',
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': ['match', ['get', 'red'], 'estado', '#B3261E', 'junta', '#1F6B42', '#B07E10'],
+          'text-halo-width': 3.5,
+        },
+      },
+      {
+        id: 'carreteras-entradas',
+        type: 'symbol',
+        source: 'entradas',
+        layout: {
+          visibility: 'none',
+          'text-field': ['concat', ['get', 'ref'], ['case', ['!=', ['get', 'destino'], ''], ['concat', ' · ', ['get', 'destino']], '']],
+          'text-font': FUENTE_M,
+          'text-size': 11,
+          'text-anchor': 'center',
+          'text-allow-overlap': false,
+        },
+        paint: { 'text-color': '#ffffff', 'text-halo-color': '#2A4F7A', 'text-halo-width': 4 },
       },
       // rótulos
       {
@@ -406,7 +470,7 @@ export function construirEstilo(tema = 'claro', termino = null) {
         type: 'symbol',
         source: 'base',
         'source-layer': 'water',
-        filter: ['has', 'name'],
+        filter: termino ? ['all', ['has', 'name'], ['within', termino]] : ['has', 'name'],
         layout: { 'text-field': ['coalesce', ['get', 'name:es'], ['get', 'name']], 'text-font': FUENTE_I, 'text-size': 12, 'symbol-placement': 'point' },
         paint: { 'text-color': '#4E7FA8', 'text-halo-color': P.halo, 'text-halo-width': 1.2 },
       },
@@ -433,18 +497,9 @@ export function construirEstilo(tema = 'claro', termino = null) {
         source: 'base',
         'source-layer': 'pois',
         minzoom: 15,
-        filter: ['in', ['get', 'kind'], ['literal', ['museum', 'attraction', 'townhall', 'university', 'hospital', 'stadium', 'station', 'marketplace', 'place_of_worship', 'park']]],
+        filter: ['all', ['in', ['get', 'kind'], ['literal', ['museum', 'attraction', 'townhall', 'university', 'hospital', 'stadium', 'station', 'marketplace', 'place_of_worship', 'park']]], termino ? ['within', termino] : true],
         layout: { 'text-field': ['coalesce', ['get', 'name:es'], ['get', 'name']], 'text-font': FUENTE, 'text-size': 11, 'text-max-width': 8 },
         paint: { 'text-color': P.textoSuave, 'text-halo-color': P.halo, 'text-halo-width': 1.2 },
-      },
-      {
-        id: 'base-poblaciones',
-        type: 'symbol',
-        source: 'base',
-        'source-layer': 'places',
-        filter: ['all', ['in', ['get', 'kind'], ['literal', ['locality']]], ['!=', ['get', 'name'], 'Sevilla']],
-        layout: { 'text-field': ['coalesce', ['get', 'name:es'], ['get', 'name']], 'text-font': FUENTE_M, 'text-size': 13 },
-        paint: { 'text-color': P.textoSuave, 'text-halo-color': P.halo, 'text-halo-width': 1.5 },
       },
       {
         id: 'rotulos-barrios',
@@ -453,7 +508,7 @@ export function construirEstilo(tema = 'claro', termino = null) {
         minzoom: 13,
         filter: ['==', ['get', 'nivel'], 'barrio'],
         layout: { visibility: 'none', 'text-field': ['get', 'nombre'], 'text-font': FUENTE_M, 'text-size': 12, 'text-max-width': 7, 'text-letter-spacing': 0.04 },
-        paint: { 'text-color': '#6B5A8A', 'text-halo-color': P.halo, 'text-halo-width': 1.6 },
+        paint: { 'text-color': ['coalesce', ['get', 'color'], '#6B5A8A'], 'text-halo-color': P.halo, 'text-halo-width': 1.8 },
       },
       {
         id: 'rotulos-distritos',
