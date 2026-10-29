@@ -8,6 +8,12 @@
     <meta name="theme-color" content="#FAF6EF" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./iconos/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Callejero" />
     <script>
       try {
         var t = localStorage.getItem('callejero.tema')
@@ -31,6 +37,10 @@
           <div class="inicio-carga" aria-live="polite"><div class="barra"><span id="inicio-progreso"></span></div></div>
           <p class="inicio-nota">Sin registrarte. Con una cuenta <b>gratis</b> además guardas tu progreso, tus anotaciones y tus propias preguntas, y retas a tus amigos.</p>
           <p class="inicio-cuenta"><button type="button" class="enlace-acento" id="inicio-crear">Crear cuenta gratis</button><span></span><button type="button" class="enlace-fuerte" id="inicio-entrar-cuenta">Ya tengo cuenta</button></p>
+          <button type="button" class="secundario inicio-instalar" id="inicio-instalar" hidden>
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            Instalar como app
+          </button>
           <p class="inicio-legal"><button type="button" class="enlace" data-abrir="fuentes">Fuentes de datos</button> · <button type="button" class="enlace" data-abrir="privacidad">Privacidad</button></p>
           <p class="dato-curioso" id="inicio-dato" aria-live="off"></p>
         </div>
