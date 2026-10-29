@@ -26,6 +26,7 @@ export const capas = {
   relieve: false,
   poligonos: false,
   carreteras: false,
+  destacados: false,
   pdi: [],
 }
 
@@ -155,7 +156,8 @@ export function aplicarCapas() {
   const nombres = capas.nombres && !ocultarNombres
   vis('nombres-calles', nombres)
   const etiquetasBase = !capas.mudo && !ocultarNombres
-  vis('base-lugares', etiquetasBase)
+  vis('destacados', capas.destacados)
+  vis('base-lugares', capas.destacados && !ocultarNombres)
   vis('agua-nombres', etiquetasBase)
 
   vis('distritos-linea', capas.distritos)

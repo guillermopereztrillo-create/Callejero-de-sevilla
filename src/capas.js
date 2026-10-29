@@ -35,6 +35,7 @@ export function montarCapas() {
     ).join('')}
     <details class="capas-detalle" open>
       <summary class="capas-grupo">${ico('M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11Zm0-9a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z').replace('width="18" height="18"', 'width="14" height="14"')}<span>Puntos de interés</span></summary>
+      <label class="interruptor"><input type="checkbox" data-capa="destacados" ${capas.destacados ? 'checked' : ''}/><i></i>${ico('M12 2v4M10 4h4M7 21V10l5-4 5 4v11M4 21h16M10 21v-4a2 2 0 0 1 4 0v4')}Iglesias, capillas y lugares destacados</label>
       <label class="interruptor"><input type="checkbox" data-capa="poligonos" ${capas.poligonos ? 'checked' : ''}/><i></i>${ico('M3 21V9l6 4V9l6 4V5h6v16H3Z')}Polígonos industriales</label>
       ${Object.entries(CATEGORIAS)
         .map(

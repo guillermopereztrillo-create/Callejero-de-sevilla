@@ -131,6 +131,59 @@ export async function mostrarCalle(id, { lngLat = null, enfocar = true } = {}) {
   app.fichaAbierta?.(c)
 }
 
+const TIPO_DESTACADO = {
+  place_of_worship: 'Iglesia o capilla',
+  monastery: 'Convento o monasterio',
+  attraction: 'Lugar destacado',
+  museum: 'Museo',
+  townhall: 'Edificio municipal',
+  castle: 'Castillo o palacio',
+  monument: 'Monumento',
+  memorial: 'Monumento conmemorativo',
+  archaeological_site: 'Yacimiento arqueológico',
+  artwork: 'Obra de arte',
+  stadium: 'Estadio',
+  theatre: 'Teatro',
+  marketplace: 'Mercado',
+  park: 'Parque',
+  garden: 'Jardín',
+  zoo: 'Zoológico',
+  theme_park: 'Parque temático',
+}
+
+/** Ficha de una iglesia, capilla o lugar destacado del mapa base (OpenStreetMap). */
+export function mostrarDestacado(props, lngLat) {
+  const nombre = props['name:es'] || props.name
+  if (!nombre) return
+  // la calle del callejero más cercana
+  let calle = null
+  let md = Infinity
+  for (const c of D.calles) {
+    const d = distanciaM([(c.bb[0] + c.bb[2]) / 2, (c.bb[1] + c.bb[3]) / 2], lngLat)
+    if (d < md && c.l < 2500) {
+      md = d
+      calle = c
+    }
+  }
+  limpiarMarcas()
+  if (calle) marcar('pista', [calle.id])
+  const el = abrir(
+    lngLat,
+    `<div class="ficha">
+      <div class="tipo" style="color:${props.kind === 'place_of_worship' || props.kind === 'monastery' ? '#8E4A9E' : '#C2701E'}">${esc(TIPO_DESTACADO[props.kind] || 'Lugar destacado')}</div>
+      <h3>${esc(nombre)}</h3>
+      ${calle ? `<dl class="ficha-datos"><dt>Cerca de</dt><dd><button type="button" class="enlace" data-calle="${calle.id}">${esc(calle.n)}</button></dd><dt>Barrio</dt><dd>${esc(D.barrios[calle.b[0]].nombre)}</dd><dt>Distrito</dt><dd>${esc(D.distritos[calle.d].nombre)}</dd></dl>` : ''}
+      ${calle ? `<div class="ficha-acciones"><button type="button" class="secundario pequeno" data-accion="vista-destacado">${icono.ojo(15)} Ver el lugar</button></div>` : ''}
+      <p class="nota">Fuente: OpenStreetMap.</p>
+    </div>`,
+  )
+  const v = el.querySelector('[data-accion=vista-destacado]')
+  if (v) v.onclick = (e) => {
+    e.stopPropagation()
+    verCalle(calle.id, lngLat, nombre)
+  }
+}
+
 export function mostrarLugar(id) {
   const l = D.lugares[id]
   if (!l) return
