@@ -143,18 +143,6 @@ export async function cargarRed() {
   return D.red
 }
 
-/** Origen del nombre de las calles (Wikipedia), por id de calle. Se carga la primera vez que se abre una ficha. */
-let etimologias = null
-export function cargarEtimologias() {
-  etimologias ||= fetch(BASE + 'etimologias.json')
-    .then((r) => (r.ok ? r.json() : {}))
-    .catch(() => {
-      etimologias = null
-      return {}
-    })
-  return etimologias
-}
-
 /** Busca calles por nombre aproximado (para enlazar las calles citadas en las preguntas oficiales). */
 export function buscarCallePorTexto(texto) {
   const k = normalizarRespuesta(texto)
