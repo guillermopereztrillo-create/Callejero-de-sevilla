@@ -1143,6 +1143,7 @@ def main():
             {'nombre': 'Distritos, barrios, término municipal y equipamientos', 'autor': 'Ayuntamiento de Sevilla · ide.SEVILLA (datos abiertos)', 'licencia': 'Datos abiertos', 'url': 'https://sig.urbanismosevilla.org/sevilla.art/datosabiertos/'},
             {'nombre': 'Ortofoto PNOA', 'autor': 'Instituto Geográfico Nacional', 'licencia': 'CC BY 4.0', 'url': 'https://pnoa.ign.es/'},
             {'nombre': 'Mapa base, sentido de circulación y calles peatonales', 'autor': 'Colaboradores de OpenStreetMap · Protomaps', 'licencia': 'ODbL', 'url': 'https://www.openstreetmap.org/copyright'},
+            {'nombre': 'Origen del nombre de las calles', 'autor': 'Wikipedia en español', 'licencia': 'CC BY-SA 4.0', 'url': 'https://es.wikipedia.org/'},
             {'nombre': 'Preguntas de examen', 'autor': 'Ayuntamiento de Sevilla · exámenes oficiales publicados', 'licencia': 'Documentos públicos', 'url': 'https://www.sevilla.org/'},
         ],
     })

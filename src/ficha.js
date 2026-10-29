@@ -1,7 +1,7 @@
 // Ficha flotante sobre el plano: al tocar una calle, un lugar o una carretera aparece su información junto a ella
 
 import maplibregl from 'maplibre-gl'
-import { D, CATEGORIAS, geometriaCalle, unirBbox } from './datos.js'
+import { D, CATEGORIAS, geometriaCalle, unirBbox, cargarEtimologias } from './datos.js'
 import { mapa, marcar, limpiarMarcas, encuadrar, encuadrarCalles, ponerMarcador, dibujarRuta, distanciaM } from './mapa.js'
 import { parques, calcularRuta } from './rutas.js'
 import { verCalle } from './vista.js'
@@ -101,6 +101,7 @@ export async function mostrarCalle(id, { lngLat = null, enfocar = true } = {}) {
         <dt>Peatonal</dt><dd>${pe}</dd>
         <dt>Circulación</dt><dd>${se}</dd>
       </dl>
+      <div class="ficha-origen" hidden></div>
       <div class="ficha-acciones">
         <button type="button" class="secundario pequeno" data-accion="vista" data-id="${id}">${icono.ojo(15)} Ver la calle</button>
         <button type="button" class="secundario pequeno" data-accion="ruta" data-id="${id}">${icono.ruta(15)} Ruta desde el parque más cercano</button>
@@ -129,6 +130,25 @@ export async function mostrarCalle(id, { lngLat = null, enfocar = true } = {}) {
   el.dataset.calle = id
   el.dataset.punto = JSON.stringify(punto)
   app.fichaAbierta?.(c)
+  mostrarOrigen(el, id)
+}
+
+/** «Origen del nombre»: lo que dice Wikipedia de la propia calle o de a quién está dedicada. */
+async function mostrarOrigen(el, id) {
+  const o = (await cargarEtimologias())[id]
+  const caja = el.querySelector('.ficha-origen')
+  if (!caja || el.dataset.calle !== String(id)) return
+  if (!o) {
+    caja.innerHTML = `<h4>Origen del nombre</h4><p class="nota">Sin datos sobre el origen de este nombre.</p>`
+    caja.hidden = false
+    return
+  }
+  const [tipo, titulo, descripcion, texto, url] = o
+  caja.innerHTML = `<h4>Origen del nombre</h4>
+    ${tipo === 'dedicada' ? `<p class="origen-dedicada">Dedicada a <b>${esc(titulo)}</b>${descripcion ? `, ${esc(descripcion)}` : ''}.</p>` : ''}
+    <p>${esc(texto)}</p>
+    <a class="origen-fuente" href="${esc(url)}" target="_blank" rel="noopener">Wikipedia · ${esc(titulo)}</a>`
+  caja.hidden = false
 }
 
 const TIPO_DESTACADO = {
