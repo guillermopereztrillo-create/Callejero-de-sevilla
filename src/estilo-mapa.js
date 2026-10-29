@@ -128,11 +128,11 @@ export const CAPAS_NOMBRES = [...CAPAS_CALLES.map((c) => c.id), 'nombres-princip
 const z = (pares) => ['interpolate', ['exponential', 1.6], ['zoom'], ...pares]
 
 export function anchoCalle(principal) {
-  return principal ? z([10, 1.4, 12, 2.8, 13, 4, 14, 5.6, 16, 11, 18, 34, 20, 110]) : z([10, 0.8, 11, 1.2, 12, 1.8, 13, 2.8, 14, 4.2, 15, 5.6, 16, 7.6, 18, 22, 20, 80])
+  return principal ? z([10, 1.05, 12, 2.1, 13, 3, 14, 4.2, 16, 8.25, 18, 25.5, 20, 82.5]) : z([10, 0.56, 11, 0.84, 12, 1.26, 13, 1.96, 14, 2.94, 15, 3.92, 16, 5.32, 18, 15.4, 20, 56])
 }
 
 const anchoBorde = (principal) =>
-  principal ? z([10, 1.8, 12, 3.3, 13, 4.6, 14, 6.3, 16, 12.2, 18, 36, 20, 113]) : z([10, 1.1, 11, 1.6, 12, 2.3, 13, 3.4, 14, 4.9, 15, 6.4, 16, 8.5, 18, 23.5, 20, 82])
+  principal ? z([10, 1.85, 12, 3.1, 13, 4.2, 14, 5.6, 16, 10.75, 18, 29.5, 20, 88.5]) : z([10, 1.16, 11, 1.64, 12, 2.26, 13, 3.16, 14, 4.34, 15, 5.52, 16, 7.12, 18, 18.4, 20, 60])
 
 /** Construye el estilo completo. `termino` es la geometría del término municipal (para no duplicar calles). */
 export function construirEstilo(tema = 'claro', termino = null) {
