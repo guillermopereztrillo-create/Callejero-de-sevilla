@@ -85,12 +85,16 @@ const TIPOS_PLAZA = ['Plaza', 'Plazuela', 'Plazoleta']
 const NOMBRE_SEGUN_ZOOM = ['step', ['zoom'], ['coalesce', ['get', 'e'], ['get', 'n']], 16, ['get', 'n']]
 
 /** Zooms con capa propia de nombres de calle, cada medio nivel (la última sigue hasta el máximo). */
-const ZOOMS_NOMBRES = Array.from({ length: 14 }, (_, i) => 13 + i / 2)
-/** Tamaño normal de la letra según el zoom y mínimo al que se reduce para caber en calles cortas. */
-const TAMANO = (zm) => (zm <= 16 ? 11 + (zm - 13) * 0.8 : Math.min(18, 13.4 + (zm - 16) * 1.4))
-const TAMANO_MINIMO = 9.5
-/** Por debajo de este tamaño, en vez de reducir más el nombre abreviado se quita el tipo de vía. */
-const TAMANO_ABREVIADO = 10.5
+const ZOOMS_NOMBRES = Array.from({ length: 12 }, (_, i) => 14 + i / 2)
+/** Tamaño de la letra según el zoom, el mismo que el original (callejerosevilla.es): 8 px en el zoom 14, 9,5 en el 16… */
+const TAMANOS = [14, 8, 16, 9.5, 17, 12.5, 18, 14.5, 19, 16.5, 20, 18]
+function TAMANO(zm) {
+  for (let i = 2; i < TAMANOS.length; i += 2)
+    if (zm <= TAMANOS[i]) return TAMANOS[i - 1] + ((zm - TAMANOS[i - 2]) / (TAMANOS[i] - TAMANOS[i - 2])) * (TAMANOS[i + 1] - TAMANOS[i - 1])
+  return TAMANOS.at(-1)
+}
+/** En calles cortas la letra se reduce un poco (hasta el 85 %, y nunca por debajo de 7,5 px) para que quepa el nombre. */
+const minimo = (t) => Math.max(7.5, t * 0.85)
 
 /** Tamaño (px) con el que el texto `prop` cabe en la calle en el zoom `zm`: `f` (calculado con el abreviado `e`) · 2^zoom. */
 // `f` deja un margen del 8 % y calcula con letra ancha: se aprovecha casi todo el largo de la calle (×1,15)
@@ -100,7 +104,7 @@ function capaNombresCalles(zm, i) {
   const ultima = i === ZOOMS_NOMBRES.length - 1
   const t = +TAMANO(zm).toFixed(2)
   // «Calle Feria» (desde el zoom 16) → «C/ Feria» → «Feria»: el más largo que quepa sin reducirlo mucho
-  const texto = ['case', zm >= 16 ? ['>=', cabe(zm, 'n'), t * 0.85] : false, 'n', ['>=', cabe(zm, 'e'), Math.min(t, TAMANO_ABREVIADO)], 'e', 'c']
+  const texto = ['case', zm >= 16 ? ['>=', cabe(zm, 'n'), minimo(t)] : false, 'n', ['>=', cabe(zm, 'e'), minimo(t)], 'e', 'c']
   const elegido = (p) => ['case', ['==', texto, 'n'], p('n'), ['==', texto, 'e'], p('e'), p('c')]
   return {
     id: 'nombres-calles-' + zm,
@@ -108,15 +112,15 @@ function capaNombresCalles(zm, i) {
     source: 'calles',
     minzoom: zm,
     ...(ultima ? {} : { maxzoom: zm + 0.5 }),
-    filter: ['all', ['==', ['get', 'z'], 0], ['==', ['get', 'p'], 0], ['!', ['in', ['get', 't'], ['literal', TIPOS_PLAZA]]], ['>=', cabe(zm, 'c'), TAMANO_MINIMO]],
+    filter: ['all', ['==', ['get', 'z'], 0], ['==', ['get', 'p'], 0], ['!', ['in', ['get', 't'], ['literal', TIPOS_PLAZA]]], ['>=', cabe(zm, 'c'), minimo(t)]],
     layout: {
       visibility: 'none',
       'text-field': elegido((p) => ['coalesce', ['get', p], ['get', 'n']]),
       'text-font': FUENTE,
-      'text-size': ['max', TAMANO_MINIMO, ['min', t, elegido((p) => cabe(zm, p))]],
+      'text-size': ['max', minimo(t), ['min', t, elegido((p) => cabe(zm, p))]],
       'symbol-placement': 'line',
       'text-max-angle': 40,
-      'symbol-spacing': zm < 16 ? 120 : zm < 18 ? 220 : 320,
+      'symbol-spacing': zm < 15 ? 90 : zm < 16 ? 120 : zm < 18 ? 220 : 320,
       'text-padding': 1,
       // primero las calles en las que el nombre cabe más holgado
       'symbol-sort-key': ['-', 0, ['get', 'f']],
@@ -124,7 +128,33 @@ function capaNombresCalles(zm, i) {
     paint: { 'text-color': '#3b2f27', 'text-halo-color': '#fffaf1', 'text-halo-width': t < 9 ? 1.1 : 1.5 },
   }
 }
-const CAPAS_CALLES = ZOOMS_NOMBRES.map(capaNombresCalles)
+/** Calles cortas en las que el nombre no cabe: el nombre sin tipo de vía, centrado en la calle aunque sobresalga
+ *  un poco por los extremos, para que se vean todas las calles (las que caben van primero, en las capas de arriba). */
+function capaNombresCortas(zm, i) {
+  const ultima = i === ZOOMS_NOMBRES.length - 1
+  const t = +TAMANO(zm).toFixed(2)
+  return {
+    id: 'nombres-cortas-' + zm,
+    type: 'symbol',
+    source: 'calles',
+    minzoom: zm,
+    ...(ultima ? {} : { maxzoom: zm + 0.5 }),
+    filter: ['all', ['==', ['get', 'z'], 0], ['==', ['get', 'p'], 0], ['!', ['in', ['get', 't'], ['literal', TIPOS_PLAZA]]], ['!', ['in', 'sin nombre', ['downcase', ['get', 'n']]]], ['<', cabe(zm, 'c'), minimo(t)]],
+    layout: {
+      visibility: 'none',
+      'text-field': ['coalesce', ['get', 'c'], ['get', 'n']],
+      'text-font': FUENTE,
+      'text-size': minimo(t),
+      'symbol-placement': 'line-center',
+      'text-max-angle': 60,
+      'text-padding': 0,
+      'symbol-sort-key': ['-', 0, ['get', 'f']],
+    },
+    paint: { 'text-color': '#3b2f27', 'text-halo-color': '#fffaf1', 'text-halo-width': 1.3 },
+  }
+}
+// MapLibre coloca primero las capas de más arriba: las cortas van debajo para que no quiten sitio a las que caben
+const CAPAS_CALLES = [...ZOOMS_NOMBRES.map(capaNombresCortas), ...ZOOMS_NOMBRES.map(capaNombresCalles)]
 
 /** Capas de nombres de calles y plazas. */
 export const CAPAS_NOMBRES = [...CAPAS_CALLES.map((c) => c.id), 'nombres-principales', 'nombres-plazas']
