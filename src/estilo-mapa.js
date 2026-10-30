@@ -88,12 +88,13 @@ const NOMBRE_SEGUN_ZOOM = ['step', ['zoom'], ['coalesce', ['get', 'e'], ['get', 
 const ZOOMS_NOMBRES = Array.from({ length: 14 }, (_, i) => 13 + i / 2)
 /** Tamaño normal de la letra según el zoom y mínimo al que se reduce para caber en calles cortas. */
 const TAMANO = (zm) => (zm <= 16 ? 11 + (zm - 13) * 0.8 : Math.min(18, 13.4 + (zm - 16) * 1.4))
-const TAMANO_MINIMO = 7
+const TAMANO_MINIMO = 9.5
 /** Por debajo de este tamaño, en vez de reducir más el nombre abreviado se quita el tipo de vía. */
-const TAMANO_ABREVIADO = 9.5
+const TAMANO_ABREVIADO = 10.5
 
 /** Tamaño (px) con el que el texto `prop` cabe en la calle en el zoom `zm`: `f` (calculado con el abreviado `e`) · 2^zoom. */
-const cabe = (zm, prop) => ['*', ['get', 'f'], 2 ** zm, ['/', ['length', ['get', 'e']], ['max', 1, ['length', ['coalesce', ['get', prop], ['get', 'n']]]]]]
+// `f` deja un margen del 8 % y calcula con letra ancha: se aprovecha casi todo el largo de la calle (×1,15)
+const cabe = (zm, prop) => ['*', ['get', 'f'], 2 ** zm * 1.15, ['/', ['length', ['get', 'e']], ['max', 1, ['length', ['coalesce', ['get', prop], ['get', 'n']]]]]]
 
 function capaNombresCalles(zm, i) {
   const ultima = i === ZOOMS_NOMBRES.length - 1
